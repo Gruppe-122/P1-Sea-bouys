@@ -1,0 +1,12 @@
+#.gitingore fil for projektet
+# filer og mapper der er nævnt i denne fil bliver ikke tracket af git
+
+# Arduino IDE build directories
+build-*/
+*.elf
+*.hex
+*.bin
+
+# Arduino IDE temporary files
+*.tmp
+*.cache
