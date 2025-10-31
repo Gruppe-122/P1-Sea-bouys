@@ -32,7 +32,7 @@ git commit -m "Deskription af ændringer og tilføjelser til fil/filer"
 
 Nu er den branch man arbejder på blevet ændret
 ```
-git push -u feature/feature_name
+git push -u origin feature/feature_name
 ```
 
 Dernæst skal man ind i Github under Pull request
