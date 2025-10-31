@@ -1,0 +1,5 @@
+#include "accel.h"
+
+String helloWorld() {
+    return "hello_world!";
+}

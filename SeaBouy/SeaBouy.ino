@@ -1,11 +1,12 @@
-#include <RadioLib.h>
+#include "src/accel.h"
 
 void setup() {
-  // put your setup code here, to run once:
+  Serial.begin(115200);
 
+  String hello = helloWorld();
+  Serial.println(hello);
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-
 }
