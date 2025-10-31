@@ -10,3 +10,5 @@ build-*/
 # Arduino IDE temporary files
 *.tmp
 *.cache
+~/
+.vscode
