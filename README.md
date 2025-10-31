@@ -7,12 +7,12 @@ git init
 
 Hent projekt ned på computer, aka klon repositoriet ned til computeren
 ```
-git clone [https://url...](https://github.com/Gruppe-122/P1-Sea-bouys.git)
+git clone https://github.com/Gruppe-122/P1-Sea-bouys.git
 ```
 
 Tilføje det repo man følger med i/tracker
 ```
-git remote add origin [https://url...](https://github.com/Gruppe-122/P1-Sea-bouys.git)
+git remote add origin https://github.com/Gruppe-122/P1-Sea-bouys.git
 ```
 
 Vi commiter ændringer i projektet ved at lave en ny branch
