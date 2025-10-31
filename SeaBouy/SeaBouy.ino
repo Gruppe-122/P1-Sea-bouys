@@ -1,4 +1,7 @@
 #include "src/accel.h"
+#include "src/amp.h"
+#include "src/gps.h"
+#include "include\RadioLib-master\src\RadioLib.h"
 
 void setup() {
   Serial.begin(115200);
