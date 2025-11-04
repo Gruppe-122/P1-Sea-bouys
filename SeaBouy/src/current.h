@@ -31,7 +31,7 @@ public:
      * @brief begin method for CurrentSensor class
      * It executes the following code
      * @code
-     * analogReadResolution(ADC_RESOLUTION);  
+     * analogReadResolution(ADC_RESOLUTION);
      * analogSetAttenuation(ADC_11db);
      * esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_12, 1100, &adc_chars);
      * @endcode
@@ -42,15 +42,15 @@ public:
      * @brief avg_ADC method for CurrentSensor class
      * Takes the average ADC value over a specified time with a specified interval
      * @param samples Amount of samples it calculates the average out of
-     * @param tid_m_samples 
+     * @param tid_m_samples
      * @code
-     * analogReadResolution(ADC_RESOLUTION);  
+     * analogReadResolution(ADC_RESOLUTION);
      * analogSetAttenuation(ADC_11db);
      * esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_12, 1100, &adc_chars);
      * @endcode
-     * @return average ADC value 
+     * @return average ADC value
      */
-    float avg_ADC(int samples, int tid_m_samples);
+    int avg_ADC(int samples, int tid_m_samples);
     /**
      * @brief get_voltage_mV method for CurrentSensor class
      * gets the voltage based on the average ADC signal
@@ -69,12 +69,14 @@ public:
     float measure_current_mA();
 
 private:
-    void set_sampling(int samples = 20, int tid_m_samples = 20);
+    void set_sampling(int samples = 20, int tid_m_samples = 20, int adc_resolution = 12);
     int _pin;
     int _dcOffset_mV;
     int _mod_mV_per_A;
     int _samples;
     int _tid_m_samples;
+    int _adc_resolution;
+    esp_adc_cal_characteristics_t adc_chars;
 };
 
 #endif
