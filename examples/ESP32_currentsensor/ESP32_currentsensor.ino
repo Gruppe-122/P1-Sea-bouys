@@ -41,19 +41,19 @@ void setup() {
 }
 //Functions
 //Get the average ADC input on pin
-int avg_ADC(int pin, int samples) {
+int avg_ADC(int pin, int samples, int tid_m_samples) {
   long sum = 0;
   int adc = 0;
   for (int i = 0; i < samples; i++) {
     adc = analogRead(pin);
     sum += adc;
-    delay(TIME_SAMPLE);
+    delay(tid_m_samples);
   }
   return sum / samples;
 }
 
 void loop() {
-  avg_adc_val = avg_ADC(ANALOG_PIN, SAMPLE_SIZE);
+  avg_adc_val = avg_ADC(ANALOG_PIN, SAMPLE_SIZE, TIME_SAMPLE);
   uint32_t voltage_mV = esp_adc_cal_raw_to_voltage(avg_adc_val, &adc_chars);
   amps = (voltage_mV - DC_OFFSET) / (float)MOD_SENS;  //Formula for converting the analog voltage from ACS712 to a current.
   mAmps = amps * 1000;
