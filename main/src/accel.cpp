@@ -71,35 +71,35 @@ int calibrate()
             done = true;
         }
 
+        gennemsnitX = sumX / (sizeof(xtest) / sizeof(xtest[0]));
+        gennemsnitY = sumY / (sizeof(ytest) / sizeof(ytest[0]));
+        gennemsnitZ = sumZ / (sizeof(ztest) / sizeof(ztest[0]));
+
+        Serial.println("KALIBRERING DONE:");
+
+        Serial.print("X i m/s2 -> sum ");
+        Serial.print(sumX);
+        Serial.print(" gennemsnit ->");
+        Serial.println(gennemsnitX);
+
+        Serial.print("Y i m/s2 -> sum ");
+        Serial.print(sumY);
+        Serial.print(" gennemsnit ->");
+        Serial.println(gennemsnitY);
+
+        Serial.print("Z i m/s2 -> sum ");
+        Serial.print(sumZ);
+        Serial.print(" gennemsnit ->");
+        Serial.println(gennemsnitZ);
+
+        delay(3000);
+
         return 1;
     }
 }
 
 int accelerometer()
 {
-    gennemsnitX = sumX / (sizeof(xtest) / sizeof(xtest[0]));
-    gennemsnitY = sumY / (sizeof(ytest) / sizeof(ytest[0]));
-    gennemsnitZ = sumZ / (sizeof(ztest) / sizeof(ztest[0]));
-
-    Serial.println("KALIBRERING DONE:");
-
-    Serial.print("X i m/s2 -> sum ");
-    Serial.print(sumX);
-    Serial.print(" gennemsnit ->");
-    Serial.println(gennemsnitX);
-
-    Serial.print("Y i m/s2 -> sum ");
-    Serial.print(sumY);
-    Serial.print(" gennemsnit ->");
-    Serial.println(gennemsnitY);
-
-    Serial.print("Z i m/s2 -> sum ");
-    Serial.print(sumZ);
-    Serial.print(" gennemsnit ->");
-    Serial.println(gennemsnitZ);
-
-    delay(3000);
-
     AccelData a = readAcceleration();
 
     float xG = (a.x - gennemsnitX);
@@ -124,7 +124,6 @@ int accelerometer()
 
     if (samletPavirkning > 4)
     {
-        Serial.print("PORT OF AALBORG BESKED");
         return 0;
     }
 
