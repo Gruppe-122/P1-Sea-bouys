@@ -39,6 +39,7 @@ int CurrentSensor::avg_ADC(int samples, int tid_m_samples)
 
 float CurrentSensor::get_voltage_mV()
 {
+
   int avg_adc_val = avg_ADC(_samples, _tid_m_samples);
   return esp_adc_cal_raw_to_voltage(avg_adc_val, &adc_chars);
 }
@@ -47,7 +48,7 @@ float CurrentSensor::measure_current_A()
 {
   int avg_adc_val = avg_ADC(_samples, _tid_m_samples);
   uint32_t voltage_mV = get_voltage_mV();
-  int amps = (voltage_mV - _dcOffset_mV) / _mod_mV_per_A;
+  float amps = (voltage_mV - _dcOffset_mV) / _mod_mV_per_A;
   return amps;
 }
 
