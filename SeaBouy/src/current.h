@@ -18,15 +18,14 @@
 
 class CurrentSensor
 {
+public:
     /**
      * @brief Constructor for the CurrentSensor class.
      * @param pin GPIO pin connected to sensor output, make sure PIN has an ADC_Channel.
      * @param dcOffset_mV Offset voltage in millivolts (around 2550 mV for ACS712).
-     * @param modSensitivity_mV_per_A Sensitivity of sensor in mV per ampere.
+     * @param modSensitivity_mV_per_A Sensitivity of sensor in mV per ampere. Is 185 for 5amp version
      */
-    CurrentSensor(int pin, int dcOffset_mV, int modSensitivity_mV_per_A = 100);
-
-public:
+    CurrentSensor(int pin, int dcOffset_mV, int modSensitivity_mV_per_A=185);
     /**
      * @brief begin method for CurrentSensor class
      * It executes the following code
@@ -38,6 +37,13 @@ public:
      * @note Must be called once before taking any readings.
      */
     void begin();
+    /**
+     * @brief sets the sampling for avg_ADC()
+     * @param samples Amount of samples it calculates the average out of
+     * @param tid_m_samples Time between samples
+     * @param adc_resolution ADC resolution in bits 12 for ESP32-S3
+     */
+    void set_sampling(int samples = 20, int tid_m_samples = 20, int adc_resolution = 12);
     /**
      * @brief avg_ADC method for CurrentSensor class
      * Takes the average ADC value over a specified time with a specified interval
@@ -69,13 +75,12 @@ public:
     float measure_current_mA();
 
 private:
-    void set_sampling(int samples = 20, int tid_m_samples = 20, int adc_resolution = 12);
-    int _pin;
-    int _dcOffset_mV;
-    int _mod_mV_per_A;
     int _samples;
     int _tid_m_samples;
     int _adc_resolution;
+    int _pin;
+    int _dcOffset_mV;
+    float _mod_mV_per_A;
     esp_adc_cal_characteristics_t adc_chars;
 };
 
