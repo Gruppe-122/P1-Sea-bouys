@@ -1,7 +1,4 @@
 #include "current.h"
-#include <Arduino.h>
-#include "driver/adc.h"
-#include "esp_adc_cal.h"
 
 CurrentSensor::CurrentSensor(int pin, int dcOffset_mV, int modSensitivity_mV_per_A)
 {
