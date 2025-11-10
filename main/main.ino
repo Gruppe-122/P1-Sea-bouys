@@ -1,6 +1,8 @@
 #include "src/accel.h"
-#include "src/amp.h"
-#include "src/gps.h"
+//#include "src/current.h"
+#include "src/bouyGPS.h"
+
+myGps myGps;
 
 void setup() {
   Serial.begin(115200);
@@ -13,4 +15,5 @@ void loop() {
     Serial.println("sending msg to port");
     delay(10000);
   };
+  myGps.run();
 }
