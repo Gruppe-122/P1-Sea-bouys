@@ -13,7 +13,11 @@ class myGps
 {
 public:
     myGps();
+    bool sendPMTKAndWaitAck(const char* cmd, int expectedCmdId, uint16_t timeoutMs);
     void run();
+    void sleep();
+    void wake();
+    void ping();
 
 private:
     HardwareSerial gpsSerial;  // UART2 on ESP32
