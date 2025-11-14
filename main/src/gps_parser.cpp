@@ -59,10 +59,9 @@ int charToHex(char in) {
   return out;
 }
 
-int verifyChkSum(char *inputData) {
-  char *head = inputData;
-  int count = 0, hash = 0, chkSum;
-  while (*head != '*') {//chunk end is a *
+int calcChkSum(char *head) {
+  int count = 0, hash = 0;
+  while ((*head != '*') && (*head != '\0')) {//chunk end is a *
     count++;
     if (128 < count) {
       return -2;
@@ -70,6 +69,13 @@ int verifyChkSum(char *inputData) {
     hash ^= *head; //bitwise xor
     head++;
   }
+  return hash;
+}
+
+int verifyChkSum(char *inputData) {
+  char *head = inputData;
+  int hash = 0, chkSum;
+  calcChkSum(head);
   head++;  // point to first of two chars in chksum
   chkSum = (charToHex(*head) * 16);
   head++;
@@ -92,6 +98,18 @@ int parseGNSSData(char *inputData, nmeaData *data) {
     Serial.println(inputData);
   }
   return 0;
+}
+
+void sleepGNSS(int sleepTime, HardwareSerial &serPort) {
+  char cmd[16], hex[2];
+  int chkSum;
+  snprintf(cmd, 18, "PCAS12,%d*", sleepTime);
+  chkSum = calcChkSum(cmd);
+  snprintf(hex, 4, "%X", chkSum);
+  serPort.print("$");
+  serPort.print(cmd);
+  serPort.print(hex);
+  serPort.print("\r\n");
 }
 
 void readGNSS(nmeaData *data, HardwareSerial &serPort) {
