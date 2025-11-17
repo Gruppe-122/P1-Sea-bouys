@@ -1,17 +1,20 @@
 #include "src/accel.h"
 #include "src/amp.h"
-#include "src/gps.h"
+#include "src/gps_parser.h"
 #include "esp_sleep.h"
 
-void setup()
-{
+#define GPSRX 19
+#define GPSTX 20
+#define GPSSerial Serial2
+
+void setup() {
   delay(1000);
   Serial.begin(115200);
   accelSetup();
   calibrate();
+  initGNSS(GPSSerial, GPSRX, GPSTX);
 
-  if (accelerometer() == 1)
-  {
+  if (accelerometer() == 1) {
     Serial.println("sending msg to port");
     delay(10000);
   }
