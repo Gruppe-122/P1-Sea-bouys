@@ -19,5 +19,7 @@ void readGNSS(nmeaData *data, HardwareSerial &serPort)
 /**
 * @brief initilises gps module on passed serial port.
 * @param serPort serial port gps module is conected to.
+* @param RX_pin rx pin gps module is conected to.
+* @param TX_pin tx pin gps module is conected to.
 */
-void initGNSS(HardwareSerial &serPort)
+void initGNSS(HardwareSerial &serPort, int RX_pin, int TX_pin)
