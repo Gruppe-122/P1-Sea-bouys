@@ -13,3 +13,6 @@ build-*/
 ~/
 .vscode
 build
+serialReadGps.cpp
+*.log
+*.csv
