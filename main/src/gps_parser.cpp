@@ -2,16 +2,11 @@
 
 #define GNSSSTARTCMD "$PCAS03,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*03\r\n"
 
-typedef struct {
-  bool vld;
-  char latDir, lonDir;
-  int nrSat;
-  float lat, lon, utc, horPosAck;
-} nmeaData;
-
 void readGGAData(char *inputData, nmeaData *data) {
   char *buff;
   //GGA protocol header
+  //strtok replaces the separator character with a string terminator
+  //#THIS MODIFIES THE DATA DESTRUCTIVELY#
   buff = strtok(inputData, ",*");
   //UTC time hhmmss.sss
   buff = strtok(NULL, ",");
@@ -49,7 +44,7 @@ void readGGAData(char *inputData, nmeaData *data) {
   buff = strtok(NULL, ",");
 }
 
-int charToHex(char in) {
+int charToHex(char in) { //converts a char (0-9,A-F) to int (0-9,10-15)
   int out = 0;
   if (in <= '9') {
     out = in - '0'; //"0" - '0' = 0x00
@@ -59,10 +54,9 @@ int charToHex(char in) {
   return out;
 }
 
-int verifyChkSum(char *inputData) {
-  char *head = inputData;
-  int count = 0, hash = 0, chkSum;
-  while (*head != '*') {//chunk end is a *
+int calcChkSum(char *head) {
+  int count = 0, hash = 0;
+  while ((*head != '*') && (*head != '\0')) {//chunk end is a *
     count++;
     if (128 < count) {
       return -2;
@@ -70,8 +64,15 @@ int verifyChkSum(char *inputData) {
     hash ^= *head; //bitwise xor
     head++;
   }
+  return hash;
+}
+
+int verifyChkSum(char *inputData) {
+  char *head = inputData;
+  int hash = 0, chkSum;
+  calcChkSum(head);
   head++;  // point to first of two chars in chksum
-  chkSum = (charToHex(*head) * 16);
+  chkSum = (charToHex(*head) << 4);
   head++;
   chkSum += charToHex(*head);
 
@@ -83,15 +84,24 @@ int verifyChkSum(char *inputData) {
 
 int parseGNSSData(char *inputData, nmeaData *data) {
   if (verifyChkSum(inputData) == 1) {
-    readGGAData(inputData, data);
+    readGGAData(inputData, data); //shreds the string it is passed (if you need it afterwards give it a copy)
     if (data->vld == 1) {
       return 1;
     }
   }
-  if (testMode == 1) {
-    Serial.println(inputData);
-  }
   return 0;
+}
+
+void sleepGNSS(int sleepTime, HardwareSerial &serPort) {
+  char cmd[16], hex[2];
+  int chkSum;
+  snprintf(cmd, 18, "PCAS12,%d*", sleepTime);
+  chkSum = calcChkSum(cmd);
+  snprintf(hex, 4, "%X", chkSum);
+  serPort.print("$"); //sends sleep command 
+  serPort.print(cmd);
+  serPort.print(hex);
+  serPort.print("\r\n");
 }
 
 void readGNSS(nmeaData *data, HardwareSerial &serPort) {
@@ -103,10 +113,10 @@ void readGNSS(nmeaData *data, HardwareSerial &serPort) {
     if (serPort.available() > 0) {
       int inByte = serPort.read();
       inbuf[inpos++] = inByte;
-      if (inByte == '$') {
+      if (inByte == '$') { //start of message
         inpos = 0;
       }
-      if (inByte == '\n') {
+      if (inByte == '\n') { //end of message
         inbuf[inpos++] = 0;
         dataReceved = parseGNSSData(inbuf, data);
       }
@@ -114,8 +124,8 @@ void readGNSS(nmeaData *data, HardwareSerial &serPort) {
   }
 }
 
-void initGNSS(HardwareSerial &serPort) {
-  serPort.begin(9600);
-  while (!serPort) {}
+void initGNSS(HardwareSerial &serPort, int RX_pin, int TX_pin) { 
+  serPort.begin(9600, SERIAL_8N1, RX_pin, TX_pin);
+  while (!serPort) {} //waits until serial port has initialized
   serPort.print(GNSSSTARTCMD);
 }
