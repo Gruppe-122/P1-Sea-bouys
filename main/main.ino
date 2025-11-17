@@ -31,7 +31,9 @@
 Volt battery(VOLT_PIN, REF_VOLTAGE, R1, R2, ADC_ATTEN_DB_11, ADC_RESOLUTION);
 CurrentSensor current(CURRENTSENSOR_PIN, DC_OFFSET);
 
-void setup() {
+void setup()
+{
+  delay(1000);
   Serial.begin(115200);
   battery.set_sampling(ADC_N_SAMPLES, ADC_SAMPLING_FREQUENCY);
   current.set_sampling(ADC_N_SAMPLES, ADC_SAMPLING_FREQUENCY);
