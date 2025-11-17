@@ -11,15 +11,27 @@ void readGGAData(char *inputData, nmeaData *data) {
   //UTC time hhmmss.sss
   buff = strtok(NULL, ",");
   data->utc = atof(buff);
+  
   //Latitude ddmm.mmmm
   buff = strtok(NULL, ",");
-  data->lat = atof(buff);
+  float raw = atof(buff);
+  int degrees = (int)(raw / 100);
+  float minutes = raw - (degrees * 100);
+  float decimel = degrees + (minutes / 60);
+  data->lat = decimel;
+  
   //N/S indication N=North, S=South
   buff = strtok(NULL, ",");
   data->latDir = *buff;
+
   //Longitude dddmm.mmmm
   buff = strtok(NULL, ",");
-  data->lon = atof(buff);
+  float raw = atof(buff);
+  int degrees = (int)(raw / 100);
+  float minutes = raw - (degrees * 100);
+  float decimel = degrees + (minutes / 60);
+  data->lon = decimel;
+  
   //E/W indication E=East, W=West
   buff = strtok(NULL, ",");
   data->lonDir = *buff;
