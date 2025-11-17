@@ -2,13 +2,6 @@
 
 #define GNSSSTARTCMD "$PCAS03,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*03\r\n"
 
-typedef struct {
-  bool vld;
-  char latDir, lonDir;
-  int nrSat;
-  float lat, lon, utc, horPosAck;
-} nmeaData;
-
 void readGGAData(char *inputData, nmeaData *data) {
   char *buff;
   //GGA protocol header
