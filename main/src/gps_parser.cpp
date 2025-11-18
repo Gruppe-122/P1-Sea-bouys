@@ -4,7 +4,7 @@
 
 static const bool USE_DECIMAL_DEGREES = false;
 
-float convertTodegrees(const char *buff){
+float convertTodegrees(const char *buff) {
   float raw = atof(buff);
   float absraw = fabs(raw);
 
@@ -18,7 +18,7 @@ float convertTodegrees(const char *buff){
   return decimal;
 }
 
-void readGGAData(char *inputData, nmeaData *data){
+void readGGAData(char *inputData, nmeaData *data) {
   char *buff;
   //GGA protocol header
   //strtok replaces the separator character with a string terminator
