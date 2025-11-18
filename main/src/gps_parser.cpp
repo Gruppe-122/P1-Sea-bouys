@@ -2,6 +2,22 @@
 
 #define GNSSSTARTCMD "$PCAS03,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*03\r\n"
 
+static const bool USE_DECIMAL_DEGREES = false;
+
+float convertTodegrees(const char *buff) {
+  float raw = atof(buff);
+  float absraw = fabs(raw);
+
+  int degrees = (int)(absraw / 100);
+  float minutes = absraw - (degrees * 100);
+  float decimal = degrees + (minutes / 60);
+
+  if (raw < 0)
+    decimal = -decimal;
+
+  return decimal;
+}
+
 void readGGAData(char *inputData, nmeaData *data) {
   char *buff;
   //GGA protocol header
@@ -11,15 +27,21 @@ void readGGAData(char *inputData, nmeaData *data) {
   //UTC time hhmmss.sss
   buff = strtok(NULL, ",");
   data->utc = atof(buff);
+
   //Latitude ddmm.mmmm
   buff = strtok(NULL, ",");
-  data->lat = atof(buff);
+  float latitude = USE_DECIMAL_DEGREES ? convertTodegrees(buff) : atof(buff);
+  data->lat = latitude;
+
   //N/S indication N=North, S=South
   buff = strtok(NULL, ",");
   data->latDir = *buff;
+
   //Longitude dddmm.mmmm
   buff = strtok(NULL, ",");
-  data->lon = atof(buff);
+  float Longitude = USE_DECIMAL_DEGREES ? convertTodegrees(buff) : atof(buff);
+  data->lon = Longitude;
+
   //E/W indication E=East, W=West
   buff = strtok(NULL, ",");
   data->lonDir = *buff;
@@ -56,7 +78,7 @@ int charToHex(char in) { //converts a char (0-9,A-F) to int (0-9,10-15)
 
 int calcChkSum(char *head) {
   int count = 0, hash = 0;
-  while ((*head != '*') && (*head != '\0')) {//chunk end is a *
+  while ((*head != '*') && (*head != '\0')) { //chunk end is a *
     count++;
     if (128 < count) {
       return -2;
@@ -71,7 +93,7 @@ int verifyChkSum(char *inputData) {
   char *head = inputData;
   int hash = 0, chkSum;
   calcChkSum(head);
-  head++;  // point to first of two chars in chksum
+  head++; //point to first of two chars in chksum
   chkSum = (charToHex(*head) << 4);
   head++;
   chkSum += charToHex(*head);
@@ -98,7 +120,7 @@ void sleepGNSS(int sleepTime, HardwareSerial &serPort) {
   snprintf(cmd, 18, "PCAS12,%d*", sleepTime);
   chkSum = calcChkSum(cmd);
   snprintf(hex, 4, "%X", chkSum);
-  serPort.print("$"); //sends sleep command 
+  serPort.print("$"); //sends sleep command
   serPort.print(cmd);
   serPort.print(hex);
   serPort.print("\r\n");
@@ -124,7 +146,7 @@ void readGNSS(nmeaData *data, HardwareSerial &serPort) {
   }
 }
 
-void initGNSS(HardwareSerial &serPort, int RX_pin, int TX_pin) { 
+void initGNSS(HardwareSerial &serPort, int RX_pin, int TX_pin) {
   serPort.begin(9600, SERIAL_8N1, RX_pin, TX_pin);
   while (!serPort) {} //waits until serial port has initialized
   serPort.print(GNSSSTARTCMD);
