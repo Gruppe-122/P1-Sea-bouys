@@ -98,7 +98,7 @@ int verifyChkSum(char *inputData) {
   head++;
   chkSum += charToHex(*head);
 
-  if (hash == chkSum){
+  if (hash == chkSum) {
     return 1;
   }
   return 0;
