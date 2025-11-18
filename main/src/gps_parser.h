@@ -1,3 +1,6 @@
+#ifndef GPS_PARSER_H
+#define GPS_PARSER_H
+
 #include <stdlib.h>
 #include <HardwareSerial.h>
 #include <string.h>
@@ -28,3 +31,5 @@ void readGNSS(nmeaData *data, HardwareSerial &serPort);
 * @param TX_pin tx pin gps module is conected to.
 */
 void initGNSS(HardwareSerial &serPort, int RX_pin, int TX_pin);
+
+#endif
