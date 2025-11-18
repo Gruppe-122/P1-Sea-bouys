@@ -2,6 +2,6 @@
 #define MESH_H
 
 #include <Arduino.h>
-#include "../include/RadioLib-master/src/RadioLib.h"
+#include <RadioLib.h>
 
 #endif
