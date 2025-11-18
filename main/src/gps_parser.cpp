@@ -66,12 +66,12 @@ void readGGAData(char *inputData, nmeaData *data){
   buff = strtok(NULL, ",");
 }
 
-int charToHex(char in) {// converts a char (0-9,A-F) to int (0-9,10-15)
+int charToHex(char in) { //converts a char (0-9,A-F) to int (0-9,10-15)
   int out = 0;
   if (in <= '9') {
     out = in - '0'; //"0" - '0' = 0x00
   }else {
-    out = in - 'A' + 10; // 0x0A = 10, "A" - 'A' + 10 = 0x0A
+    out = in - 'A' + 10; //0x0A = 10, "A" - 'A' + 10 = 0x0A
   }
   return out;
 }
