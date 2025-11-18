@@ -148,6 +148,6 @@ void readGNSS(nmeaData *data, HardwareSerial &serPort) {
 
 void initGNSS(HardwareSerial &serPort, int RX_pin, int TX_pin) {
   serPort.begin(9600, SERIAL_8N1, RX_pin, TX_pin);
-  while (!serPort){} //waits until serial port has initialized
+  while (!serPort) {} //waits until serial port has initialized
   serPort.print(GNSSSTARTCMD);
 }
