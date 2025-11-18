@@ -47,7 +47,7 @@ void readGGAData(char *inputData, nmeaData *data){
   data->lonDir = *buff;
   //Positioning 0: not positioned 1: valid Position
   buff = strtok(NULL, ",");
-  if (*buff >= '1'){
+  if (*buff >= '1') {
     data->vld = 1;
   }else {
     data->vld = 0;
