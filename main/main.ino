@@ -30,6 +30,7 @@
 #define GPSTX 20
 #define GPSSerial Serial2
 //Variables
+nmeaData GNSSData;
 
 //Objects
 Volt battery(VOLT_PIN, REF_VOLTAGE, R1, R2, ADC_ATTEN_DB_11, ADC_RESOLUTION);
@@ -45,5 +46,7 @@ void setup() {
 }
 
 void loop() {
-  
+  readGNSS(&GNSSData, GPSSerial);
+  sleepGNSS(10, GPSSerial);
+  delay(10000);
 }
