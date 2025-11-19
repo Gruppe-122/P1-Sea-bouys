@@ -12,7 +12,10 @@ Volt::Volt(int pin, int vRef, float R1, float R2,
       _R2(R2)
 {
     _divFactor = R1 / (R1 + R2);
+}
 
+void Volt::begin()
+{
     analogReadResolution(_resolution);
     analogSetPinAttenuation(_pin, (adc_attenuation_t)_atten);
     esp_adc_cal_characterize(ADC_UNIT_1, (adc_atten_t)_atten, _resolution_ADC, _vRef, &_adcChars);
