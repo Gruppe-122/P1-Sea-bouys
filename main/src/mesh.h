@@ -6,31 +6,44 @@
 #include <SPI.h>
 #include <vector>
 
-class meshtastic
+struct BuoyData {
+    uint8_t buoy_number;
+    float battery_voltage;
+    bool lamp_current;
+    bool accelerometer_jerk;
+    float gps_latitude;
+    float gps_longitude;
+};
+
+class meshalternativ
 {
 private:
-    SX1262 radio;
+    Module* mod;
+    SX1262* radio;
     
     bool initialized;
     int id;
+    static void setFlagReceive(void);
+    static meshalternativ* instance;
 
-    const float frequency = 868.0;
+    volatile bool receivedFlag;
+
+    const float frequency = 868.1;
     const float bandwidth = 125.0;
     const int spreading_factor = 7;
-    const int coding_rate = 7;
+    const int coding_rate = 5;
     const int sync_word = 0x34;
-    const float power = 20;
+    const float power = 17;
     const int preamble_length = 8;
-    const int gain = 0;
-    const bool TCXO = false;
 
 public:
-    meshtastic();
-    ~meshtastic();
+    meshalternativ();
+    ~meshalternativ();
 
-    start_radio();
-    sleep_radio();
-    init_mesh();
+    void start_radio();
+    void sleep_radio();
+    void send_data(const BuoyData& data);
+    bool receive_data(BuoyData& data);
 };
 
 #endif
