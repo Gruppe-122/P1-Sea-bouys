@@ -41,6 +41,11 @@ float Volt::read_ADC_voltage()
     return esp_adc_cal_raw_to_voltage(rawAvg, &_adcChars);
 }
 
+float Volt::read_voltage_mV()
+{
+    return analogReadMilliVolts(_pin);
+}
+
 float Volt::read_battery_voltage_mV()
 {
     float mv = analogReadMilliVolts(_pin);

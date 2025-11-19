@@ -55,6 +55,13 @@ public:
     /**
      * @brief read_battery_voltage_mv method for Volt class
      * gets the voltage from analogReadMilliVolts()
+     * Seems to be more accurate than read_voltage_mV
+     * @return voltage in mV
+     */
+    float read_voltage_mV();
+    /**
+     * @brief read_battery_voltage_mv method for Volt class
+     * gets the voltage from analogReadMilliVolts()
      * and divides with divFactor based on R1 and R2
      * Such that you get the voltage from the bouy battery
      * @return voltage in mV
