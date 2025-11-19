@@ -26,7 +26,18 @@ public:
     Volt(int pin, int vRef, float R1, float R2,
          adc_atten_t atten = ADC_ATTEN_DB_11,
          int resolution = 12);
-
+    /**
+     * @brief begin method for Volt class
+     * Configures the ESP32 to recieve voltage on _pin.
+     * Executes:
+     * @code
+     * analogReadResolution(_resolution);
+     * analogSetPinAttenuation(_pin, (adc_attenuation_t)_atten);
+     * esp_adc_cal_characterize(ADC_UNIT_1, (adc_atten_t)_atten, _resolution_ADC, _vRef, &_adcChars);
+     * @endcode
+     * @note Must be called before taking any readings.
+     */
+    void begin();
     /**
      * @brief sets the sampling for avg_ADC()
      * @param samples Amount of samples it calculates the average out of
@@ -54,7 +65,13 @@ public:
     float read_ADC_voltage();
     /**
      * @brief read_battery_voltage_mv method for Volt class
-     * gets the voltage from analogReadMilliVolts()
+     * gets the voltage from API analogReadMilliVolts()
+     * @return voltage in mV
+     */
+    float read_voltage_mV();
+    /**
+     * @brief read_battery_voltage_mv method for Volt class
+     * gets the voltage from API analogReadMilliVolts()
      * and divides with divFactor based on R1 and R2
      * Such that you get the voltage from the bouy battery
      * @return voltage in mV
