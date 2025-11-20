@@ -10,7 +10,7 @@ typedef struct
   bool vld;
   char latDir, lonDir;
   int nrSat;
-  float lat, lon, utc, horPosAck;
+  double lat, lon, utc, horPosAck;
 } nmeaData;
 
 /**
