@@ -141,7 +141,7 @@ void readGNSS(nmeaData *data, HardwareSerial &serPort) {
         inbuf[inpos++] = 0;
         bool isGGA = true;
         for (int i = 0; i < 5; i++) { //5 chars: 'G','N','G','G','A'
-          if (buffer[i] != GNGGA[i]) {
+          if (inbuf[i] != GNGGA[i]) {
             isGGA = false;
             break;                     // stop tidligt
           }
