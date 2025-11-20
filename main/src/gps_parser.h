@@ -5,8 +5,7 @@
 #include <HardwareSerial.h>
 #include <string.h>
 
-typedef struct
-{
+typedef struct {
   bool vld;
   char latDir, lonDir;
   int nrSat;
