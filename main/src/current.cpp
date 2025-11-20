@@ -1,17 +1,17 @@
 #include "current.h"
 
-CurrentSensor::CurrentSensor(int pin, int dcOffset_mV, int modSensitivity_mV_per_A)
+CurrentSensor::CurrentSensor(int pin, int dcOffset_mV, int modSensitivity_mV_per_A, adc_attenuation_t atten)
 {
   _pin = pin;
   _dcOffset_mV = dcOffset_mV;
   _mod_mV_per_A = modSensitivity_mV_per_A;
+  _atten = atten;
 }
 
 void CurrentSensor::begin()
 {
-  analogReadResolution(_adc_resolution); // Set ADC resolution
-  analogSetAttenuation(ADC_11db);       // Set input attenuation for 0-3.3V range
-  esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_12, 1100, &adc_chars);
+  analogReadResolution(_adc_resolution);          // Set ADC resolution
+  analogSetPinAttenuation(_pin, _atten);        // Set input attenuation for 0-3.1V range
 }
 
 void CurrentSensor::set_sampling(int samples, int tid_m_samples, int adc_resolution)
@@ -37,13 +37,11 @@ int CurrentSensor::avg_ADC(int samples, int tid_m_samples)
 float CurrentSensor::get_voltage_mV()
 {
 
-  int avg_adc_val = avg_ADC(_samples, _tid_m_samples);
-  return esp_adc_cal_raw_to_voltage(avg_adc_val, &adc_chars);
+  return analogReadMilliVolts(_pin);
 }
 
 float CurrentSensor::measure_current_A()
 {
-  int avg_adc_val = avg_ADC(_samples, _tid_m_samples);
   uint32_t voltage_mV = get_voltage_mV();
   float amps = (voltage_mV - _dcOffset_mV) / _mod_mV_per_A;
   return amps;

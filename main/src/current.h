@@ -1,10 +1,7 @@
 #ifndef CURRENT_H
 #define CURRENT_H
 
-#include "current.h"
 #include <Arduino.h>
-#include "driver/adc.h"
-#include "esp_adc_cal.h"
 
 /**
  * @class CurrentSensor
@@ -27,7 +24,7 @@ public:
      * @param dcOffset_mV Offset voltage in millivolts (around 2550 mV for ACS712).
      * @param modSensitivity_mV_per_A Sensitivity of sensor in mV per ampere. Is 185 for 5amp version
      */
-    CurrentSensor(int pin, int dcOffset_mV, int modSensitivity_mV_per_A=185);
+    CurrentSensor(int pin, int dcOffset_mV, int modSensitivity_mV_per_A=185, adc_attenuation_t atten=ADC_11db);
     /**
      * @brief begin method for CurrentSensor class
      * It executes the following code
@@ -61,7 +58,7 @@ public:
     int avg_ADC(int samples, int tid_m_samples);
     /**
      * @brief get_voltage_mV method for CurrentSensor class
-     * gets the voltage based on the average ADC signal
+     * gets the voltage from API analogReadMilliVolts()
      * @return voltage in mV
      */
     float get_voltage_mV();
@@ -79,11 +76,13 @@ public:
 private:
     int _samples;
     int _tid_m_samples;
-    int _adc_resolution;
+    int _adc_resolution = 12;
     int _pin;
     int _dcOffset_mV;
     float _mod_mV_per_A;
-    esp_adc_cal_characteristics_t adc_chars;
+    // Arduino API uses adc_attenuation_t
+    // Where ESP_IDF uses adc_atten_t these cannot be mixed
+    adc_attenuation_t _atten = ADC_11db;
 };
 
 #endif
