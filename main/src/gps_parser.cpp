@@ -90,7 +90,7 @@ int verifyChkSum(char *inputData) {
   char *head = inputData;
   int hash = 0, chkSum;
   hash = calcChkSum(head);
-  head++;  // point to first of two chars in chksum
+  head++;  //point to first of two chars in chksum
   chkSum = (charToHex(*head) << 4);
   head++;
   chkSum += charToHex(*head);
