@@ -10,7 +10,7 @@ struct AccelData
     float z;
 };
 
-void writeRegister(uint8_t deviceAddress, uint8_t registerAddress, uint8_t value)
+static void writeRegister(uint8_t deviceAddress, uint8_t registerAddress, uint8_t value)
 { // funktionen gør at vi kan ændre registrene på ADXL345
     Wire.beginTransmission(deviceAddress);
     Wire.write(registerAddress);
@@ -18,7 +18,7 @@ void writeRegister(uint8_t deviceAddress, uint8_t registerAddress, uint8_t value
     Wire.endTransmission();
 }
 
-byte readRegister(uint8_t deviceAddress, uint8_t registerAddress)
+static byte readRegister(uint8_t deviceAddress, uint8_t registerAddress)
 { // funktionen læser hvad der står på de gældene registre, så der kan tjekkes om det der står er rigtig
     Wire.beginTransmission(deviceAddress);
     Wire.write(registerAddress);

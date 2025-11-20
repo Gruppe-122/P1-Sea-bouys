@@ -47,6 +47,8 @@ void setup() {
 
 void loop() {
   readGNSS(&GNSSData, GPSSerial);
-  sleepGNSS(1000, GPSSerial);
+  PrintGPSData(GNSSData);
+
+  //sleepGNSS(1000, GPSSerial);
   delay(1000);
 }
