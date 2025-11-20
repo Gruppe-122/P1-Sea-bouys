@@ -90,7 +90,7 @@ int verifyChkSum(char *inputData) {
   char *head = inputData;
   int hash = 0, chkSum;
   hash = calcChkSum(head);
-  head++;  //point to first of two chars in chksum
+  head++; //point to first of two chars in chksum
   chkSum = (charToHex(*head) << 4);
   head++;
   chkSum += charToHex(*head);
@@ -117,7 +117,7 @@ void sleepGNSS(int sleepTime, HardwareSerial &serPort) {
   snprintf(cmd, 24, "PCAS12,%d*", sleepTime);
   chkSum = calcChkSum(cmd);
   snprintf(hex, 4, "%X", chkSum);
-  serPort.print("$"); //sends sleep command 
+  serPort.print("$"); //sends sleep command
   serPort.print(cmd);
   serPort.print(hex);
   serPort.print("\r\n");
