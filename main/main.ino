@@ -10,7 +10,7 @@
 
 #include "src/accel.h"
 #include "src/current.h"
-#include "src/gps.h"
+#include "src/gps_parser.h"
 #include "src/volt.h"
 
 //definitions
@@ -28,7 +28,7 @@
 //Variables
 
 //Objects
-Volt battery(VOLT_PIN, REF_VOLTAGE, R1, R2, ADC_ATTEN_DB_11, ADC_RESOLUTION);
+Volt battery(VOLT_PIN, R1, R2, ADC_11db, ADC_RESOLUTION);
 CurrentSensor current(CURRENTSENSOR_PIN, DC_OFFSET);
 
 void setup()
