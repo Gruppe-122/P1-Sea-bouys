@@ -25,21 +25,30 @@
 
 #define ADC_N_SAMPLES 20          //amount of ADC signals to base voltage reading on
 #define ADC_SAMPLING_FREQUENCY 20 //time between taking ADC value ms
+
+#define GPSRX 19
+#define GPSTX 20
+#define GPSSerial Serial2
 //Variables
+nmeaData GNSSData;
 
 //Objects
 Volt battery(VOLT_PIN, R1, R2, ADC_11db, ADC_RESOLUTION);
 CurrentSensor current(CURRENTSENSOR_PIN, DC_OFFSET);
 
-void setup()
-{
+void setup() {
   delay(1000);
   Serial.begin(115200);
+  initGNSS(GPSSerial, GPSRX, GPSTX);
   battery.set_sampling(ADC_N_SAMPLES, ADC_SAMPLING_FREQUENCY);
   current.set_sampling(ADC_N_SAMPLES, ADC_SAMPLING_FREQUENCY);
   current.begin();
 }
 
 void loop() {
-  
+  readGNSS(&GNSSData, GPSSerial);
+  PrintGPSData(GNSSData);
+
+  //sleepGNSS(1000, GPSSerial);
+  delay(1000);
 }

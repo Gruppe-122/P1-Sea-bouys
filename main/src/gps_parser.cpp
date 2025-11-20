@@ -4,16 +4,11 @@
 
 static const bool USE_DECIMAL_DEGREES = false;
 
-float convertTodegrees(const char *buff) {
-  float raw = atof(buff);
-  float absraw = fabs(raw);
+double convertTodegrees(double raw) {
 
-  int degrees = (int)(absraw / 100);
-  float minutes = absraw - (degrees * 100);
-  float decimal = degrees + (minutes / 60);
-
-  if (raw < 0)
-    decimal = -decimal;
+  int degrees = (int)(raw / 100);
+  double minutes = raw - (degrees * 100);
+  double decimal = degrees + (minutes / 60);
 
   return decimal;
 }
@@ -27,20 +22,16 @@ void readGGAData(char *inputData, nmeaData *data) {
   //UTC time hhmmss.sss
   buff = strtok(NULL, ",");
   data->utc = atof(buff);
-
   //Latitude ddmm.mmmm
   buff = strtok(NULL, ",");
-  float latitude = USE_DECIMAL_DEGREES ? convertTodegrees(buff) : atof(buff);
-  data->lat = latitude;
+  data->lat = USE_DECIMAL_DEGREES ? convertTodegrees(atof(buff)) : atof(buff);
 
   //N/S indication N=North, S=South
   buff = strtok(NULL, ",");
   data->latDir = *buff;
-
   //Longitude dddmm.mmmm
   buff = strtok(NULL, ",");
-  float Longitude = USE_DECIMAL_DEGREES ? convertTodegrees(buff) : atof(buff);
-  data->lon = Longitude;
+  data->lon = USE_DECIMAL_DEGREES ? convertTodegrees(atof(buff)) : atof(buff);
 
   //E/W indication E=East, W=West
   buff = strtok(NULL, ",");
@@ -66,39 +57,65 @@ void readGGAData(char *inputData, nmeaData *data) {
   buff = strtok(NULL, ",");
 }
 
-int charToHex(char in) { //converts a char (0-9,A-F) to int (0-9,10-15)
-  int out = 0;
-  if (in <= '9') {
-    out = in - '0'; //"0" - '0' = 0x00
-  }else {
-    out = in - 'A' + 10; //0x0A = 10, "A" - 'A' + 10 = 0x0A
+int charToHex(char in) {
+  // 0–9 → 0–9
+  if (in >= '0' && in <= '9') {
+    return in - '0';
   }
-  return out;
+  // A–F → 10–15
+  if (in >= 'A' && in <= 'F') {
+    return in - 'A' + 10;
+  }
+  // a–f → 10–15
+  if (in >= 'a' && in <= 'f') {
+    return in - 'a' + 10;
+  }
+
+  return -1; // invalid hex char
 }
 
-int calcChkSum(char *head) {
-  int count = 0, hash = 0;
-  while ((*head != '*') && (*head != '\0')) { //chunk end is a *
-    count++;
-    if (128 < count) {
-      return -2;
-    }
-    hash ^= *head; //bitwise xor
+// XOR of characters between $ and * (not including them)
+int calcChkSum(const char *head) {
+  int hash = 0;
+  int count = 0;
+
+  while (*head != '*' && *head != '\0') {
+    hash ^= (unsigned char)*head;
     head++;
+    count++;
+
+    if (count > 128) {
+      return -2; // safety guard
+    }
   }
+
   return hash;
 }
 
 int verifyChkSum(char *inputData) {
-  char *head = inputData;
-  int hash = 0, chkSum;
-  calcChkSum(head);
-  head++; //point to first of two chars in chksum
-  chkSum = (charToHex(*head) << 4);
-  head++;
-  chkSum += charToHex(*head);
+  // Find '$'
+  char *start = strchr(inputData, '$');
+  if (!start) return 0;
+  start++; // skip '$'
 
-  if (hash == chkSum) {
+  // Compute XOR
+  int hash = calcChkSum(start);
+  if (hash < 0) return 0;
+
+  // Find '*'
+  char *star = strchr(start, '*');
+  if (!star) return 0;
+
+  // Require exactly two hex digits after '*'
+  if (!star[1] || !star[2]) return 0;
+
+  int hi = charToHex(star[1]);
+  int lo = charToHex(star[2]);
+  if (hi < 0 || lo < 0) return 0;
+
+  int chkSum = (hi << 4) | lo;
+
+  if (chkSum == hash) {
     return 1;
   }
   return 0;
@@ -115,9 +132,9 @@ int parseGNSSData(char *inputData, nmeaData *data) {
 }
 
 void sleepGNSS(int sleepTime, HardwareSerial &serPort) {
-  char cmd[16], hex[2];
+  char cmd[24], hex[4]; //checksum is 2 chars of hex
   int chkSum;
-  snprintf(cmd, 18, "PCAS12,%d*", sleepTime);
+  snprintf(cmd, 24, "PCAS12,%d*", sleepTime);
   chkSum = calcChkSum(cmd);
   snprintf(hex, 4, "%X", chkSum);
   serPort.print("$"); //sends sleep command
@@ -127,27 +144,71 @@ void sleepGNSS(int sleepTime, HardwareSerial &serPort) {
 }
 
 void readGNSS(nmeaData *data, HardwareSerial &serPort) {
-  char inbuf[128];
-  int inpos = 0;
+  char buffer[256];
+  int index = 0;
+  bool startCMD = false;
   bool dataReceved = 0;
+  const char GNGGA_CMD[] = "$GNGGA";
   data->vld = 0;
+  uint32_t startMs = millis();
+  const uint32_t timeoutMs = 6000; //6s timeout
   while (dataReceved == 0) {
+    if ((millis() - startMs) > timeoutMs) {
+      return;
+    }
     if (serPort.available() > 0) {
-      int inByte = serPort.read();
-      inbuf[inpos++] = inByte;
-      if (inByte == '$') { //start of message
-        inpos = 0;
+      char c = serPort.read();
+      if (c == '$') { //start of message
+        index = 0;
+        startCMD = true;
       }
-      if (inByte == '\n') { //end of message
-        inbuf[inpos++] = 0;
-        dataReceved = parseGNSSData(inbuf, data);
+      if (startCMD){
+        buffer[index] = c;
+        index++;
+      }
+      if (c == '\n' && startCMD) { //end of message
+        buffer[index] = '\0';
+        startCMD = false;
+
+        bool isGNGGA = true;
+        for (int i = 0; i < 6; i++) {       // 6 tegn: '$', 'G','N','G','G','A'
+            if (buffer[i] != GNGGA_CMD[i]) {
+                isGNGGA = false;
+                break;                     // stop tidligt
+            }
+        }
+        if (isGNGGA){
+          dataReceved = parseGNSSData(buffer, data);
+        }
+      }
+      if (index >= sizeof(buffer)){
+        startCMD = false;
+        index = 0;
       }
     }
   }
 }
 
-void initGNSS(HardwareSerial &serPort, int RX_pin, int TX_pin) {
+void PrintGPSData(nmeaData &GNSSData){
+  Serial.print("lat: ");
+  Serial.print(GNSSData.lat, sizeof(double));
+  Serial.println(GNSSData.latDir);
+  Serial.print("lon: ");
+  Serial.print(GNSSData.lon, sizeof(double));
+  Serial.println(GNSSData.lonDir);
+  Serial.print("UTC: ");
+  Serial.println(GNSSData.utc);
+  Serial.print("nrSat: ");
+  Serial.println(GNSSData.nrSat);
+  Serial.print("vld: ");
+  Serial.println(GNSSData.vld);
+}
+
+void initGNSS(HardwareSerial &serPort, int RX_pin, int TX_pin) { 
   serPort.begin(9600, SERIAL_8N1, RX_pin, TX_pin);
-  while (!serPort) {} //waits until serial port has initialized
+  while (!serPort) {
+    delay(100);
+  } //waits until serial port has initialized
+  serPort.flush();
   serPort.print(GNSSSTARTCMD);
 }
