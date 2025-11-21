@@ -32,7 +32,6 @@ void resetINT1()
     readRegister(ADXL345_ADDRESS, 0x30); // ifølge datasheet, når man læser int_source, så clearer den alle interrupts
 }
 
-static bool done = false;
 static float xtest[100];
 static float ytest[100];
 static float ztest[100];
@@ -78,65 +77,61 @@ int accelSetup()
 
 int calibrate()
 {
-    if (done == false)
-    {
-        // Serial.println("KALIBRERING starter om 5 sekunder:");
-        // Serial.println("PLACER VERTIKALT FLADT");
-        // for (int x = 5; x > 0; x--)
-        // {
-        //     Serial.println(x);
-        //     delay(1000);
-        // }
-        for (int i = 0; i < sizeof(xtest) / sizeof(xtest[0]); i++)
-        { // hver gang "i", skal vi readAcceleration og gemme i et array i struct
-            AccelData accel = readAccel();
-            xtest[i] = accel.x;
-            ytest[i] = accel.y;
-            ztest[i] = accel.z;
-            sumX += xtest[i];
-            sumY += ytest[i];
-            sumZ += ztest[i];
-            delay(50);
-        }
-        done = true;
-
-        gennemsnitX = sumX / (sizeof(xtest) / sizeof(xtest[0]));
-        gennemsnitY = sumY / (sizeof(ytest) / sizeof(ytest[0]));
-        gennemsnitZ = sumZ / (sizeof(ztest) / sizeof(ztest[0]));
-
-        Serial.println("KALIBRERING DONE");
-
-        // Serial.print("X i m/s2 -> sum ");
-        // Serial.print(sumX);
-        // Serial.print(" gennemsnit ->");
-        // Serial.println(gennemsnitX);
-
-        // Serial.print("Y i m/s2 -> sum ");
-        // Serial.print(sumY);
-        // Serial.print(" gennemsnit ->");
-        // Serial.println(gennemsnitY);
-
-        // Serial.print("Z i m/s2 -> sum ");
-        // Serial.print(sumZ);
-        // Serial.print(" gennemsnit ->");
-        // Serial.println(gennemsnitZ);
-
-        // delay(3000);
-
-        return 1;
+    // Serial.println("KALIBRERING starter om 5 sekunder:");
+    // Serial.println("PLACER VERTIKALT FLADT");
+    // for (int x = 5; x > 0; x--)
+    // {
+    //     Serial.println(x);
+    //     delay(1000);
+    // }
+    for (int i = 0; i < sizeof(xtest) / sizeof(xtest[0]); i++)
+    { // hver gang "i", skal vi readAcceleration og gemme i et array i struct
+        AccelData accel = readAccel();
+        xtest[i] = accel.x;
+        ytest[i] = accel.y;
+        ztest[i] = accel.z;
+        sumX += xtest[i];
+        sumY += ytest[i];
+        sumZ += ztest[i];
+        delay(50);
     }
+
+    gennemsnitX = sumX / (sizeof(xtest) / sizeof(xtest[0]));
+    gennemsnitY = sumY / (sizeof(ytest) / sizeof(ytest[0]));
+    gennemsnitZ = sumZ / (sizeof(ztest) / sizeof(ztest[0]));
+
+    Serial.println("KALIBRERING DONE");
+
+    // Serial.print("X i m/s2 -> sum ");
+    // Serial.print(sumX);
+    // Serial.print(" gennemsnit ->");
+    // Serial.println(gennemsnitX);
+
+    // Serial.print("Y i m/s2 -> sum ");
+    // Serial.print(sumY);
+    // Serial.print(" gennemsnit ->");
+    // Serial.println(gennemsnitY);
+
+    // Serial.print("Z i m/s2 -> sum ");
+    // Serial.print(sumZ);
+    // Serial.print(" gennemsnit ->");
+    // Serial.println(gennemsnitZ);
+
+    // delay(3000);
+
+    return 1;
 }
 
 int accelerometer()
 {
     int intState = digitalRead(5);
-    AccelData accel = readAccel();
 
     resetINT1();
 
-    float xG = (accel.x - gennemsnitX);
-    float yG = (accel.y - gennemsnitY);
-    float zG = (accel.z - gennemsnitZ);
+    // AccelData accel = readAccel();
+    // float xG = (accel.x - gennemsnitX);
+    // float yG = (accel.y - gennemsnitY);
+    // float zG = (accel.z - gennemsnitZ);
 
     if (intState == HIGH)
     {
