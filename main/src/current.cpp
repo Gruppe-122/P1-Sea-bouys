@@ -11,7 +11,8 @@ void CurrentSensor::begin()
 {
   analogReadResolution(_adc_resolution); // Set ADC resolution
   analogSetAttenuation(ADC_11db);       // Set input attenuation for 0-3.3V range
-  esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_12, 1100, &adc_chars);
+  //Deprecated
+  //esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_12, 1100, &adc_chars); 
 }
 
 void CurrentSensor::set_sampling(int samples, int tid_m_samples, int adc_resolution)
@@ -36,9 +37,7 @@ int CurrentSensor::avg_ADC(int samples, int tid_m_samples)
 
 float CurrentSensor::get_voltage_mV()
 {
-
-  int avg_adc_val = avg_ADC(_samples, _tid_m_samples);
-  return esp_adc_cal_raw_to_voltage(avg_adc_val, &adc_chars);
+  return analogReadMilliVolts(_pin);
 }
 
 float CurrentSensor::measure_current_A()

@@ -1,10 +1,7 @@
 #ifndef CURRENT_H
 #define CURRENT_H
 
-#include "current.h"
 #include <Arduino.h>
-#include "driver/adc.h"
-#include "esp_adc_cal.h"
 
 /**
  * @class CurrentSensor
@@ -83,7 +80,8 @@ private:
     int _pin;
     int _dcOffset_mV;
     float _mod_mV_per_A;
-    esp_adc_cal_characteristics_t adc_chars;
+    //Deprecated due to legacy code warnings
+    /*esp_adc_cal_characteristics_t adc_chars;*/
 };
 
 #endif
