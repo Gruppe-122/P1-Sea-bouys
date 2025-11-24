@@ -10,12 +10,12 @@
 
 #include "src/accel.h"
 #include "src/current.h"
-#include "src/gps.h"
+#include "src/gps_parser.h"
 #include "src/volt.h"
 
 //definitions
-#define R1 1000.0        //Resistor value in voltagedivider circuit
-#define R2 1000.0        //Resistor value in voltagedivider circuit
+#define R1 50000.0       //Resistor value in voltagedivider circuit
+#define R2 10000.0        //Resistor value in voltagedivider circuit
 #define REF_VOLTAGE 1100 //ESP32 reference voltage for calibration.
 #define VOLT_PIN 7
 #define ADC_RESOLUTION 12
@@ -28,7 +28,7 @@
 //Variables
 
 //Objects
-Volt battery(VOLT_PIN, REF_VOLTAGE, R1, R2, ADC_ATTEN_DB_11, ADC_RESOLUTION);
+Volt battery(VOLT_PIN,R1, R2, ADC_11db, ADC_RESOLUTION);
 CurrentSensor current(CURRENTSENSOR_PIN, DC_OFFSET);
 
 void setup()
@@ -41,5 +41,9 @@ void setup()
 }
 
 void loop() {
-  
+  int adc = battery.avg_ADC();
+  int mv = battery.read_voltage_mV();
+  int bat_mv = battery.read_battery_voltage_mV();
+
+  Serial.printf("ADC = %d | mV = %d | mv_bat = %d\n", adc,mv,bat_mv);
 }
