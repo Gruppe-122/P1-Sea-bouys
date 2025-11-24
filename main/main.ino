@@ -30,7 +30,7 @@
 #define GPSRX 19
 #define GPSTX 20
 #define GPSSerial Serial2
-#define BUOY_ID 3 
+#define BUOY_ID 3
 #define BUOY_AMOUNT 4
 
 //Variables
