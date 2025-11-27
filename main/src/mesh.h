@@ -12,8 +12,8 @@ struct BuoyData
     int buoy_number;
     int sent_from;
     float battery_voltage;
-    float gps_latitude;
-    float gps_longitude;
+    double gps_latitude;
+    double gps_longitude;
     bool accelerometer_jerk;
     bool lamp_current;
 };
