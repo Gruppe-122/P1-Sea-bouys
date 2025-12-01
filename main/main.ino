@@ -13,6 +13,7 @@
 #include "src/gps_parser.h"
 #include "src/volt.h"
 #include "src/mesh.h"
+#include "src/log.h"
 
 // definitions
 #define R1 1000.0        // Resistor value in voltagedivider circuit
@@ -33,29 +34,31 @@
 #define BUOY_ID 3
 #define BUOY_AMOUNT 4
 
-// Variables
+// Structs
 nmeaData GNSSData;
-meshalternativ buoy;
 BuoyData ownData;
 BuoyData receivedData;
 
 // Objects
 Volt battery(VOLT_PIN, R1, R2, ADC_11db, ADC_RESOLUTION);
 CurrentSensor current(CURRENTSENSOR_PIN, DC_OFFSET);
+meshalternativ buoy;
+
+// logs
+logger accelLog = logger("ACCELOMETER", "SEILENT");
+logger currentLog = logger("CURRENT", "SEILENT");
+logger voltLog = logger("VOLT", "SEILENT");
+logger meshLog = logger("MESH", "DEBUG");
+logger gpsLog = logger("GPS", "SEILENT");
 
 void collectSensorData()
 {
-    // Check accelerometer
     ownData.accelerometer_jerk = accelerometer();
-    // Check battery
     ownData.battery_voltage = battery.read_battery_voltage_mV();
-    // Check GPS & time
-    // Use time from GPS to calibrate here
     readGNSS(&GNSSData, GPSSerial);
     ownData.gps_latitude = GNSSData.lat;
     ownData.gps_longitude = GNSSData.lon;
-    // Check Lamp (UTC)
-    
+    // UTC Missing
     bool isLampCurrent = current.measure_current_mA() > 0 ? true : false;
     ownData.lamp_current = isLampCurrent;
 }
@@ -82,7 +85,7 @@ void loop()
   int initialized = 0;
   if (initialized == 0)
   {
-    collectSensorData(ownData);
+    collectSensorData();
     // Use time to check when to send (maybe a delay on found time vs expected time sequence starts)
     // Comment above only works if we can get milliseconds; system needs changing if not
     // Buoy ID in seconds + 0.5 seconds before sending

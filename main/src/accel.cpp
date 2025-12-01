@@ -3,13 +3,33 @@
 
 #define ADXL345_ADDRESS 0x53
 
-static bool DEBUG = false;
-
 static float xtest[100];
 static float ytest[100];
 static float ztest[100];
 static float gennemsnitX, gennemsnitY, gennemsnitZ = 0;
 static float sumX, sumY, sumZ = 0;
+
+static void writeRegister(uint8_t deviceAddress, uint8_t registerAddress, uint8_t value)
+{ // funktionen gør at vi kan ændre registrene på ADXL345
+    Wire.beginTransmission(deviceAddress);
+    Wire.write(registerAddress);
+    Wire.write(value);
+    Wire.endTransmission();
+}
+
+static byte readRegister(uint8_t deviceAddress, uint8_t registerAddress)
+{ // funktionen læser hvad der står på de gældene registre, så der kan tjekkes om det der står er rigtig
+    Wire.beginTransmission(deviceAddress);
+    Wire.write(registerAddress);
+    Wire.endTransmission(false);
+    Wire.requestFrom(deviceAddress, (uint8_t)1);
+    return Wire.read();
+}
+
+void resetINT1()
+{
+    readRegister(ADXL345_ADDRESS, 0x30); // ifølge datasheet, når man læser int_source, så clearer den alle interrupts
+}
 
 int accelSetup()
 {
@@ -50,16 +70,16 @@ AccelData readAccel()
 
 int calibrate()
 {
-    if (DEBUG)
+    if (accelLog.returnLevel("DEBUG"))
     {
-        Serial.println("KALIBRERING starter om 5 sekunder:");
-        Serial.println("PLACER VERTIKALT FLADT");
+        accelLog.log("KALIBRERING starter om 5 sekunder:", "INFO", true);
+        accelLog.log("PLACER VERTIKALT FLADT", "INFO", true);
         for (int x = 5; x > 0; x--)
-        {
+
             Serial.println(x);
-            delay(1000);
-        }
+        delay(1000);
     }
+
     for (int i = 0; i < sizeof(xtest) / sizeof(xtest[0]); i++)
     { // hver gang "i", skal vi readAcceleration og gemme i et array i struct
         AccelData accel = readAccel();
@@ -75,25 +95,23 @@ int calibrate()
     gennemsnitX = sumX / (sizeof(xtest) / sizeof(xtest[0]));
     gennemsnitY = sumY / (sizeof(ytest) / sizeof(ytest[0]));
     gennemsnitZ = sumZ / (sizeof(ztest) / sizeof(ztest[0]));
+    accelLog.log("KALIBRERING DONE", "INFO", true);
 
-    Serial.println("KALIBRERING DONE");
+    accelLog.log("X i m/s2 -> sum ",    "DEBUG", false);
+    accelLog.logln(sumX,                "DEBUG", true);
+    accelLog.log(" gennemsnit ->",      "DEBUG", false);
+    accelLog.logln(gennemsnitX,         "DEBUG", true);
+    accelLog.log("Y i m/s2 -> sum ",    "DEBUG", false);
+    accelLog.logln(sumY,                "DEBUG", true);
+    accelLog.log(" gennemsnit ->",      "DEBUG", false);
+    accelLog.logln(gennemsnitY,         "DEBUG", true);
+    accelLog.log("Z i m/s2 -> sum ",    "DEBUG", false);
+    accelLog.logln(sumZ,                "DEBUG", true);
+    accelLog.log(" gennemsnit ->",      "DEBUG", false);
+    accelLog.logln(gennemsnitZ,         "DEBUG", true);
 
-    // Serial.print("X i m/s2 -> sum ");
-    // Serial.print(sumX);
-    // Serial.print(" gennemsnit ->");
-    // Serial.println(gennemsnitX);
-
-    // Serial.print("Y i m/s2 -> sum ");
-    // Serial.print(sumY);
-    // Serial.print(" gennemsnit ->");
-    // Serial.println(gennemsnitY);
-
-    // Serial.print("Z i m/s2 -> sum ");
-    // Serial.print(sumZ);
-    // Serial.print(" gennemsnit ->");
-    // Serial.println(gennemsnitZ);
-
-    // delay(3000);
+    if (accelLog.returnLevel("DEBUG"))
+        delay(3000);
 
     return 1;
 }
@@ -104,14 +122,17 @@ bool accelerometer()
 
     resetINT1();
 
-    // AccelData accel = readAccel();
-    // float xG = (accel.x - gennemsnitX);
-    // float yG = (accel.y - gennemsnitY);
-    // float zG = (accel.z - gennemsnitZ);
+    if (accelLog.returnLevel("DEBUG"))
+    {
+        AccelData accel = readAccel();
+        float xG = (accel.x - gennemsnitX);
+        float yG = (accel.y - gennemsnitY);
+        float zG = (accel.z - gennemsnitZ);
+    }
 
     if (intState == HIGH)
     {
-        Serial.println("Aktivitet over 2.69G registreret");
+        accelLog.logln("Aktivitet over 2.69G registreret", "INFO", true);
         resetINT1();
         return true;
     }
@@ -131,26 +152,4 @@ bool accelerometer()
         // Serial.println(zG);
         return false;
     }
-}
-
-static void writeRegister(uint8_t deviceAddress, uint8_t registerAddress, uint8_t value)
-{ // funktionen gør at vi kan ændre registrene på ADXL345
-    Wire.beginTransmission(deviceAddress);
-    Wire.write(registerAddress);
-    Wire.write(value);
-    Wire.endTransmission();
-}
-
-static byte readRegister(uint8_t deviceAddress, uint8_t registerAddress)
-{ // funktionen læser hvad der står på de gældene registre, så der kan tjekkes om det der står er rigtig
-    Wire.beginTransmission(deviceAddress);
-    Wire.write(registerAddress);
-    Wire.endTransmission(false);
-    Wire.requestFrom(deviceAddress, (uint8_t)1);
-    return Wire.read();
-}
-
-void resetINT1()
-{
-    readRegister(ADXL345_ADDRESS, 0x30); // ifølge datasheet, når man læser int_source, så clearer den alle interrupts
 }

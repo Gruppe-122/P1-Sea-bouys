@@ -1,4 +1,7 @@
 #include "volt.h"
+#include "log.h"
+
+extern logger voltLog;
 
 Volt::Volt(int pin, float R1, float R2,
            adc_attenuation_t atten, int resolution)

@@ -4,7 +4,9 @@
 #include <stdlib.h>
 #include <HardwareSerial.h>
 #include <string.h>
+#include "log.h"
 
+extern logger gpsLog;
 typedef struct {
   bool vld;
   char latDir, lonDir;
