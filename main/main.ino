@@ -28,8 +28,8 @@
 #define ADC_N_SAMPLES 20          // amount of ADC signals to base voltage reading on
 #define ADC_SAMPLING_FREQUENCY 20 // time between taking ADC value ms
 
-#define GPSRX 19
-#define GPSTX 20
+#define GPSRX 20
+#define GPSTX 19
 #define GPSSerial Serial2
 #define BUOY_ID 3
 #define BUOY_AMOUNT 4

@@ -22,7 +22,6 @@ private:
     void preLog();
 
 public:
-    // VIGTIGT: to parametre, så det matcher log.cpp
     logger(const char *logId, const char *level);
     ~logger();
 
