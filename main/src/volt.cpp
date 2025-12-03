@@ -19,7 +19,12 @@ Volt::Volt(int pin, float R1, float R2,
 void Volt::begin()
 {
     analogReadResolution(_resolution);
+    voltLog.log("analogReadresolution: ", "INFO", true);
+    voltLog.logln(_resolution, "INFO", false);
     analogSetPinAttenuation(_pin, _atten);
+    char buffer[50];
+    sprintf(buffer, "analogSetPinAttenuation --> pin: %d Attenuation: ADC_11db", _pin);
+    voltLog.logln("analogSetPinAttenuation: ", "INFO", true);
 }
 
 void Volt::set_sampling(int samples, int tid_m_samples)

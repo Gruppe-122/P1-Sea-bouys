@@ -33,7 +33,6 @@ void resetINT1()
 
 int accelSetup()
 {
-    pinMode(5, INPUT);
     Wire.begin(7, 6); // SDA og SCL
 
     writeRegister(ADXL345_ADDRESS, 0x2D, 0x1C); // tænder målings mode og autosleep
@@ -95,20 +94,22 @@ int calibrate()
     gennemsnitX = sumX / (sizeof(xtest) / sizeof(xtest[0]));
     gennemsnitY = sumY / (sizeof(ytest) / sizeof(ytest[0]));
     gennemsnitZ = sumZ / (sizeof(ztest) / sizeof(ztest[0]));
-    accelLog.log("KALIBRERING DONE", "INFO", true);
+    accelLog.logln("KALIBRERING DONE", "INFO", true);
 
-    accelLog.log("X i m/s2 -> sum ",    "DEBUG", false);
-    accelLog.logln(sumX,                "DEBUG", true);
-    accelLog.log(" gennemsnit ->",      "DEBUG", false);
-    accelLog.logln(gennemsnitX,         "DEBUG", true);
-    accelLog.log("Y i m/s2 -> sum ",    "DEBUG", false);
-    accelLog.logln(sumY,                "DEBUG", true);
-    accelLog.log(" gennemsnit ->",      "DEBUG", false);
-    accelLog.logln(gennemsnitY,         "DEBUG", true);
-    accelLog.log("Z i m/s2 -> sum ",    "DEBUG", false);
-    accelLog.logln(sumZ,                "DEBUG", true);
-    accelLog.log(" gennemsnit ->",      "DEBUG", false);
-    accelLog.logln(gennemsnitZ,         "DEBUG", true);
+    accelLog.log("X i m/s2 -> sum ",    "DEBUG", true);
+    accelLog.logln(sumX,                "DEBUG", false);
+    accelLog.log(" gennemsnit ->",      "DEBUG", true);
+    accelLog.logln(gennemsnitX,         "DEBUG", false);
+
+    accelLog.log("Y i m/s2 -> sum ",    "DEBUG", true);
+    accelLog.logln(sumY,                "DEBUG", false);
+    accelLog.log(" gennemsnit ->",      "DEBUG", true);
+    accelLog.logln(gennemsnitY+1,       "DEBUG", false);
+
+    accelLog.log("Z i m/s2 -> sum ",    "DEBUG", true);
+    accelLog.logln(sumZ,                "DEBUG", false);
+    accelLog.log(" gennemsnit ->",      "DEBUG", true);
+    accelLog.logln(gennemsnitZ,         "DEBUG", false);
 
     if (accelLog.returnLevel("DEBUG"))
         delay(3000);
@@ -122,12 +123,16 @@ bool accelerometer()
 
     resetINT1();
 
+    float xG;
+    float yG;
+    float zG;
+
     if (accelLog.returnLevel("DEBUG"))
     {
         AccelData accel = readAccel();
-        float xG = (accel.x - gennemsnitX);
-        float yG = (accel.y - gennemsnitY);
-        float zG = (accel.z - gennemsnitZ);
+        xG = (accel.x - gennemsnitX);
+        yG = (accel.y - gennemsnitY);
+        zG = (accel.z - gennemsnitZ);
     }
 
     if (intState == HIGH)
@@ -139,17 +144,18 @@ bool accelerometer()
     else
     {
         Serial.println("Ingen aktivitet");
-        // Serial.print("min:");
-        // Serial.print(-16);
-        // Serial.print("\tmax:");
-        // Serial.print(16);
-        // Serial.print(" ");
-        // Serial.print("X:");
-        // Serial.print(xG);
-        // Serial.print(" Y:");
-        // Serial.print(yG);
-        // Serial.print(" Z:");
-        // Serial.println(zG);
+        Serial.print("min:");
+        Serial.print(-16);
+        Serial.print("\tmax:");
+        Serial.print(16);
+        Serial.print(" ");
+        Serial.print("X:");
+        Serial.print(xG);
+        Serial.print(" Y:");
+        Serial.print(yG);
+        Serial.print(" Z:");
+        Serial.println(zG);
+        
         return false;
     }
 }

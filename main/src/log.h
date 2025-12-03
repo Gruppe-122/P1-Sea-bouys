@@ -2,7 +2,6 @@
 #define LOG_H
 
 #include <Arduino.h>
-#include "heltec.h"
 
 enum LogLevelCode {
     LVL_SILENT = 0,
@@ -16,7 +15,6 @@ class logger
 private:
     LogLevelCode currentLevel;
     const char *id;
-    const bool displayOn;
     
     LogLevelCode parseLevel(const char *level);
     void preLog();

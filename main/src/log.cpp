@@ -1,19 +1,10 @@
 #include "log.h"
 #include <string.h> // strcmp
 
-logger::logger(const char *logId, const char *level, bool dis)
+logger::logger(const char *logId, const char *level)
 {
     currentLevel = parseLevel(level);
     id = logId;
-    displayOn = dis;
-    if (dis)
-    {
-        Heltec.begin(
-            true,  // Display (OLED) enable
-            false, // LoRa disable (sæt true hvis du vil bruge det)
-            true   // Serial enable
-        );
-    }
 }
 
 logger::~logger()
@@ -59,16 +50,6 @@ bool logger::returnLevel(const char *level)
     return !shouldLog(currentLevel, msgLevel);
 }
 
-static void logger::display(const char *msg)
-{
-    if (displayOn)
-    {
-        Heltec.display->clear();
-        Heltec.display->drawString(0, 0, msg);
-        Heltec.display->display();
-    }
-}
-
 // -------- log (uden newline) --------
 void logger::log(const char *msg, const char *level, bool metaLog)
 {
@@ -79,7 +60,6 @@ void logger::log(const char *msg, const char *level, bool metaLog)
     if (metaLog)
         preLog();
     Serial.print(msg);
-    display(msg);
 }
 
 void logger::log(int msg, const char *level, bool metaLog)
