@@ -28,11 +28,14 @@
 #define ADC_N_SAMPLES 20          // amount of ADC signals to base voltage reading on
 #define ADC_SAMPLING_FREQUENCY 20 // time between taking ADC value ms
 
-#define GPSRX 20
-#define GPSTX 19
+#define GPSRX 19
+#define GPSTX 20
 #define GPSSerial Serial2
 #define BUOY_ID 3
 #define BUOY_AMOUNT 4
+
+#define CURRENT_POWER_PIN 0
+#define VOLTAGE_POWER_PIN 2
 
 // Structs
 nmeaData GNSSData;
@@ -40,7 +43,7 @@ BuoyData ownData;
 BuoyData receivedData;
 
 // Objects
-Volt battery(VOLT_PIN, R1, R2, ADC_11db, ADC_RESOLUTION);
+Volt battery(VOLT_PIN, R1, R2);
 CurrentSensor current(CURRENTSENSOR_PIN, DC_OFFSET);
 meshalternativ buoy;
 
@@ -79,14 +82,27 @@ void logBuoyData(logger &log, const BuoyData &data, const char *level)
 
 void collectSensorData()
 {
+    // pin power setup
+    digitalWrite(CURRENT_POWER_PIN, HIGH);
+    digitalWrite(VOLTAGE_POWER_PIN, HIGH);
+    delay(100);
+
+    // Accelometer
     ownData.accelerometer_jerk = accelerometer();
-    ownData.battery_voltage = battery.read_battery_voltage_mV();
+    // Voltage
+    ownData.battery_voltage = battery.ADC_to_mV(analogRead(4));
+    // GPS
     readGNSS(&GNSSData, GPSSerial);
     ownData.gps_latitude = GNSSData.lat;
     ownData.gps_longitude = GNSSData.lon;
     // UTC Missing
+    Serial.println(current.measure_current_mA());
     bool isLampCurrent = current.measure_current_mA() > 0 ? true : false;
     ownData.lamp_current = isLampCurrent;
+
+    // pin power clean up
+    //digitalWrite(CURRENT_POWER_PIN, LOW);
+    //digitalWrite(VOLTAGE_POWER_PIN, LOW);
 }
 
 void setup()
@@ -96,14 +112,18 @@ void setup()
   // GPS
   initGNSS(GPSSerial, GPSRX, GPSTX);
   // voltage measurements
-  battery.set_sampling(ADC_N_SAMPLES, ADC_SAMPLING_FREQUENCY);
+  pinMode(VOLT_PIN, INPUT);
+  pinMode(VOLTAGE_POWER_PIN, OUTPUT); 
+  digitalWrite(VOLTAGE_POWER_PIN, LOW);
   // mesh
   buoy.start_radio();
   ownData.buoy_number = BUOY_ID;
   // Current sensor
+  pinMode(CURRENTSENSOR_PIN, INPUT);
   current.set_sampling(ADC_N_SAMPLES, ADC_SAMPLING_FREQUENCY);
   current.begin();
-  int PowerPin = 0; pinMode(PowerPin, OUTPUT); digitalWrite(PowerPin, LOW);
+  pinMode(CURRENT_POWER_PIN, OUTPUT); 
+  digitalWrite(CURRENT_POWER_PIN, LOW);
   // Accelometer
   pinMode(5, INPUT);
   accelSetup();
@@ -119,8 +139,8 @@ void loop()
   logBuoyData(mainLog, ownData, "DEBUG");
 
   delay(3000);
-  // Wake up
-  // initialized = 0 somewhere in wake up
+  //// Wake up
+  //// initialized = 0 somewhere in wake up
   //int initialized = 0;
   //if (initialized == 0)
   //{
@@ -162,6 +182,6 @@ void loop()
   //}
 //
   //delay(2000);
-  // After a certain amount of time, check how long it's been awake
-  // Then GoToSleep
+  //// After a certain amount of time, check how long it's been awake
+  //// Then GoToSleep
 }
