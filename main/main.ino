@@ -8,7 +8,7 @@
 // | will increase                                                       |
 // -----------------------------------------------------------------------
 
-#include "src/accel.h"
+//#include "src/accel.h"
 #include "src/current.h"
 #include "src/gps_parser.h"
 #include "src/volt.h"
@@ -40,13 +40,13 @@ BuoyData ownData;
 BuoyData receivedData;
 
 // Objects
-Volt battery(VOLT_PIN, R1, R2, ADC_11db, ADC_RESOLUTION);
-CurrentSensor current(CURRENTSENSOR_PIN, DC_OFFSET);
+Volt battery(VOLT_PIN, R1, R2);
+CurrentSensor current(CURRENTSENSOR_PIN, DC_OFFSET, 185, ADC_11db);
 
 void collectSensorData()
 {
     // Check accelerometer
-    ownData.accelerometer_jerk = accelerometer();
+    //ownData.accelerometer_jerk = accelerometer();
     // Check battery
     ownData.battery_voltage = battery.read_battery_voltage_mV();
     // Check GPS & time
@@ -66,7 +66,6 @@ void setup()
   Serial.begin(115200);
   buoy.start_radio();
   initGNSS(GPSSerial, GPSRX, GPSTX);
-  battery.set_sampling(ADC_N_SAMPLES, ADC_SAMPLING_FREQUENCY);
   current.set_sampling(ADC_N_SAMPLES, ADC_SAMPLING_FREQUENCY);
   ownData.buoy_number = BUOY_ID;
   current.begin();
@@ -82,7 +81,7 @@ void loop()
   int initialized = 0;
   if (initialized == 0)
   {
-    collectSensorData(ownData);
+    collectSensorData();
     // Use time to check when to send (maybe a delay on found time vs expected time sequence starts)
     // Comment above only works if we can get milliseconds; system needs changing if not
     // Buoy ID in seconds + 0.5 seconds before sending
