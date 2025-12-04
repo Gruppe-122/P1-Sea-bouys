@@ -36,7 +36,6 @@ int CurrentSensor::avg_ADC(int samples, int tid_m_samples)
 
 float CurrentSensor::get_voltage_mV()
 {
-
   return analogReadMilliVolts(_pin);
 }
 
