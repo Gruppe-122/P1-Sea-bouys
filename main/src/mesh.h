@@ -35,7 +35,8 @@ private:
     const float bandwidth = 125.0;
     const int spreading_factor = 7;
     const int coding_rate = 5;
-    const int sync_word = 0x34;
+    // Sync word is important so you don't interact with others
+    const int sync_word = 0x24;
     const float power = 17;
     const int preamble_length = 8;
 

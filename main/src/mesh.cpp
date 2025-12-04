@@ -61,8 +61,10 @@ void meshalternativ::send_data(const BuoyData& data)
         return;
     }
 
+    bool flagSaved = receivedFlag;
     int state = radio->transmit((uint8_t*)&data, sizeof(BuoyData));
-    
+    receivedFlag = flagSaved;
+
     if (state == RADIOLIB_ERR_NONE)
     {
         Serial.println(F("Struct sent successfully!"));
