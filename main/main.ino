@@ -54,30 +54,30 @@ logger voltLog = logger("VOLT", "SEILENT");
 logger meshLog = logger("MESH", "DEBUG");
 logger gpsLog = logger("GPS", "SEILENT");
 
-logger mainLog = logger("Main", "DEBUG");
+logger mainLog = logger("MAIN", "TEST");
 
-void logBuoyData(logger &log, const BuoyData &data, const char *level)
+void logBuoyData(const BuoyData &data, const char *level)
 {
-    log.log("buoy_number: ", level, true);
-    log.logln(data.buoy_number, level, false);
+    mainLog.log("buoy_number: ", level, true);
+    mainLog.logln(data.buoy_number, level, false);
 
-    log.log("sent_from: ", level, true);
-    log.logln(data.sent_from, level, false);
+    mainLog.log("sent_from: ", level, true);
+    mainLog.logln(data.sent_from, level, false);
 
-    log.log("battery_voltage: ", level, true);
-    log.logln(data.battery_voltage, level, false);
+    mainLog.log("battery_voltage: ", level, true);
+    mainLog.logln(data.battery_voltage, level, false);
 
-    log.log("gps_latitude: ", level, true);
-    log.logln(data.gps_latitude, level, false);
+    mainLog.log("gps_latitude: ", level, true);
+    mainLog.logln(data.gps_latitude, level, false);
 
-    log.log("gps_longitude: ", level, true);
-    log.logln(data.gps_longitude, level, false);
+    mainLog.log("gps_longitude: ", level, true);
+    mainLog.logln(data.gps_longitude, level, false);
 
-    log.log("accelerometer_jerk: ", level, true);
-    log.logln(data.accelerometer_jerk, level, false);
+    mainLog.log("accelerometer_jerk: ", level, true);
+    mainLog.logln(data.accelerometer_jerk, level, false);
 
-    log.log("lamp_current: ", level, true);
-    log.logln(data.lamp_current, level, false);
+    mainLog.log("lamp_current: ", level, true);
+    mainLog.logln(data.lamp_current, level, false);
 }
 
 void collectSensorData()
@@ -90,7 +90,11 @@ void collectSensorData()
     // Accelometer
     ownData.accelerometer_jerk = accelerometer();
     // Voltage
-    ownData.battery_voltage = battery.ADC_to_mV(analogRead(4));
+    int avg_ADC = 0;
+    for (int i = 0; i < 100; i++) {
+      avg_ADC += battery.moving_avg_ADC();
+    }
+    ownData.battery_voltage = battery.ADC_to_mV(avg_ADC);
     // GPS
     readGNSS(&GNSSData, GPSSerial);
     ownData.gps_latitude = GNSSData.lat;
@@ -101,8 +105,8 @@ void collectSensorData()
     ownData.lamp_current = isLampCurrent;
 
     // pin power clean up
-    //digitalWrite(CURRENT_POWER_PIN, LOW);
-    //digitalWrite(VOLTAGE_POWER_PIN, LOW);
+    digitalWrite(CURRENT_POWER_PIN, LOW);
+    digitalWrite(VOLTAGE_POWER_PIN, LOW);
 }
 
 void setup()
@@ -135,53 +139,50 @@ int receivedIDs = 0;
 
 void loop()
 {
-  collectSensorData();
-  logBuoyData(mainLog, ownData, "DEBUG");
+  // Wake up
+  // initialized = 0 somewhere in wake up
+  int initialized = 0;
+  if (initialized == 0)
+  {
+    collectSensorData();
+    logBuoyData(ownData, "TEST");
+    // Use time to check when to send (maybe a delay on found time vs expected time sequence starts)
+    // Comment above only works if we can get milliseconds; system needs changing if not
+    // Buoy ID in seconds + 0.5 seconds before sending
+    delay((BUOY_ID * 1000) + 500);
+    buoy.send_data(ownData);
+    // Adding own buoy to the array of sent bouys
+    idCheck[0] = BUOY_ID;
+    receivedIDs++;
+    // Create a struct, get data and start listening again
+    initialized = 1;
+  }
 
-  delay(3000);
-  //// Wake up
-  //// initialized = 0 somewhere in wake up
-  //int initialized = 0;
-  //if (initialized == 0)
-  //{
-  //  collectSensorData();
-  //  // Use time to check when to send (maybe a delay on found time vs expected time sequence starts)
-  //  // Comment above only works if we can get milliseconds; system needs changing if not
-  //  // Buoy ID in seconds + 0.5 seconds before sending
-  //  delay((BUOY_ID * 1000) + 500);
-  //  buoy.send_data(ownData);
-  //  // Adding own buoy to the array of sent bouys
-  //  idCheck[0] = BUOY_ID;
-  //  receivedIDs++;
-  //  // Create a struct, get data and start listening again
-  //  initialized = 1;
-  //}
-//
-  //buoy.receive_data(receivedData);
-  //bool alreadySent;
-  //for (int i = 0; i < receivedIDs; i++)
-  //{ // Amount of IDs received, check if already in array
-  //  if (receivedData.buoy_number == idCheck[i])
-  //  {
-  //    alreadySent = true;
-  //  }
-  //}
-  //// If it's from a buoy it hasn't gotten info from before, and it's maximum 3 buoys above my own ID
-  //if (alreadySent = false && BUOY_ID < receivedData.sent_from < BUOY_ID + 4)
-  //{
-  //  // If it's 1 buoy above, don't delay. Otherwise, delay with +0,6 sekunder pr afstand væk
-  //  int amountAway = receivedData.sent_from - BUOY_ID - 1;
-  //  amountAway = amountAway * 600;
-  //  delay(amountAway);
-  //  // Take buoy number, put into idCheck with received IDs number, add a new received ID for the next buoy
-  //  idCheck[receivedIDs] = receivedData.buoy_number;
-  //  receivedIDs++;
-  //  // Send data onwards
-  //  receivedData.sent_from = BUOY_ID;
-  //  buoy.send_data(receivedData);
-  //}
-//
-  //delay(2000);
-  //// After a certain amount of time, check how long it's been awake
-  //// Then GoToSleep
+  buoy.receive_data(receivedData);
+  bool alreadySent;
+  for (int i = 0; i < receivedIDs; i++)
+  { // Amount of IDs received, check if already in array
+    if (receivedData.buoy_number == idCheck[i])
+    {
+      alreadySent = true;
+    }
+  }
+  // If it's from a buoy it hasn't gotten info from before, and it's maximum 3 buoys above my own ID
+  if (alreadySent = false && BUOY_ID < receivedData.sent_from < BUOY_ID + 4)
+  {
+    // If it's 1 buoy above, don't delay. Otherwise, delay with +0,6 sekunder pr afstand væk
+    int amountAway = receivedData.sent_from - BUOY_ID - 1;
+    amountAway = amountAway * 600;
+    delay(amountAway);
+    // Take buoy number, put into idCheck with received IDs number, add a new received ID for the next buoy
+    idCheck[receivedIDs] = receivedData.buoy_number;
+    receivedIDs++;
+    // Send data onwards
+    receivedData.sent_from = BUOY_ID;
+    buoy.send_data(receivedData);
+  }
+
+  delay(2000);
+  // After a certain amount of time, check how long it's been awake
+  // Then GoToSleep
 }
