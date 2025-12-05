@@ -5,6 +5,7 @@
 static const bool USE_DECIMAL_DEGREES = false;
 
 double convertTodegrees(double raw) {
+  gpsLog.logln("convert lat or lon to degrees decimal", "INFO", true);
 
   int degrees = (int)(raw / 100);
   double minutes = raw - (degrees * 100);
@@ -14,6 +15,7 @@ double convertTodegrees(double raw) {
 }
 
 void readGGAData(char *inputData, nmeaData *data) {
+  gpsLog.logln("decode gps data (GGA DATA)", "INFO", true);
   char *buff;
   //GGA protocol header
   //strtok replaces the separator character with a string terminator
@@ -63,6 +65,7 @@ int charToHex(char in) {
 }
 
 int calcChkSum(char *head) {
+  gpsLog.logln("calculates checksum", "INFO", true);
   int count = 0, hash = 0;
   while ((*head != '*') && (*head != '\0')) { //chunk end is a *
     count++;
@@ -76,6 +79,7 @@ int calcChkSum(char *head) {
 }
 
 int verifyChkSum(char *inputData) {
+  gpsLog.logln("verify the checksum", "INFO", true);
   char *head = inputData;
   int readPos = 0;
   int hash = calcChkSum(head);
@@ -91,6 +95,10 @@ int verifyChkSum(char *inputData) {
   head++;
   chkSum += charToHex(*head);
 
+  gpsLog.log(hash, "DEBUG", true);
+  gpsLog.log(" == ", "DEBUG", false);
+  gpsLog.logln(chkSum, "DEBUG", false);
+
   if (hash == chkSum) {
     return 1;
   }
@@ -98,6 +106,7 @@ int verifyChkSum(char *inputData) {
 }
 
 int parseGNSSData(char *inputData, nmeaData *data) {
+  gpsLog.logln("varify data", "INFO", true);
   if (verifyChkSum(inputData) == 1) {
     readGGAData(inputData, data); //shreds the string it is passed (if you need it afterwards give it a copy)
     if (data->vld == 1) {
@@ -108,6 +117,7 @@ int parseGNSSData(char *inputData, nmeaData *data) {
 }
 
 void sleepGNSS(int sleepTime, HardwareSerial &serPort) {
+  gpsLog.logln("send sleep command to GPS", "INFO", true);
   char cmd[24], hex[4]; //checksum is 2 chars of hex
   int chkSum;
   snprintf(cmd, 24, "PCAS12,%d*", sleepTime);
@@ -120,6 +130,7 @@ void sleepGNSS(int sleepTime, HardwareSerial &serPort) {
 }
 
 void readGNSS(nmeaData *data, HardwareSerial &serPort) {
+  gpsLog.logln("reads GPS nema data", "INFO", true);
   char inbuf[128];
   int inpos = 0;
   bool dataReceved = 0;
@@ -139,6 +150,8 @@ void readGNSS(nmeaData *data, HardwareSerial &serPort) {
       }
       if (inByte == '\n') { //end of message
         inbuf[inpos++] = 0;
+        gpsLog.logln(inbuf, "DEBUG", true);
+
         bool isGGA = true;
         for (int i = 0; i < 5; i++) { //5 chars: 'G','N','G','G','A'
           if (inbuf[i] != GNGGA[i]) {
@@ -146,6 +159,7 @@ void readGNSS(nmeaData *data, HardwareSerial &serPort) {
             break;                     // stop tidligt
           }
         }
+
         if (isGGA == true) {
           dataReceved = parseGNSSData(inbuf, data);
         }else {
@@ -160,21 +174,26 @@ void readGNSS(nmeaData *data, HardwareSerial &serPort) {
 }
 
 void PrintGPSData(nmeaData &GNSSData){
-  Serial.print("lat: ");
-  Serial.print(GNSSData.lat, sizeof(double));
-  Serial.println(GNSSData.latDir);
-  Serial.print("lon: ");
-  Serial.print(GNSSData.lon, sizeof(double));
-  Serial.println(GNSSData.lonDir);
-  Serial.print("UTC: ");
-  Serial.println(GNSSData.utc);
-  Serial.print("nrSat: ");
-  Serial.println(GNSSData.nrSat);
-  Serial.print("vld: ");
-  Serial.println(GNSSData.vld);
+  gpsLog.log("lat: ", "DEBUG", true);
+  gpsLog.log(GNSSData.lat, "DEBUG", false);
+  gpsLog.logln(GNSSData.latDir, "DEBUG", false);
+
+  gpsLog.log("lon: ", "DEBUG", true);
+  gpsLog.log(GNSSData.lon, "DEBUG", false);
+  gpsLog.logln(GNSSData.lonDir, "DEBUG", false);
+
+  gpsLog.log("UTC: ", "DEBUG", true);
+  gpsLog.logln(GNSSData.utc, "DEBUG", false);
+
+  gpsLog.log("nrSat: ", "DEBUG", true);
+  gpsLog.logln(GNSSData.nrSat, "DEBUG", false);
+
+  gpsLog.log("vld: ", "DEBUG", true);
+  gpsLog.logln(GNSSData.vld, "DEBUG", false);
 }
 
 void initGNSS(HardwareSerial &serPort, int RX_pin, int TX_pin) { 
+  gpsLog.logln("Init GPS", "INFO", true);
   serPort.begin(9600, SERIAL_8N1, RX_pin, TX_pin);
   while (!serPort) {} //waits until serial port has initialized
   serPort.flush();
