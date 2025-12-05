@@ -23,8 +23,10 @@ public:
      * @param pin GPIO pin connected to sensor output, make sure PIN has an ADC_Channel.
      * @param dcOffset_mV Offset voltage in millivolts (around 2550 mV for ACS712).
      * @param modSensitivity_mV_per_A Sensitivity of sensor in mV per ampere. Is 185 for 5amp version
+     * @param atten ADC attenuation setting, default ADC_11db. ADC_11db and ADC_12db are equal. Max input is approx 3160mV
+     * @param resolution ADC resolution, default 12 bits
      */
-    CurrentSensor(int pin, int dcOffset_mV, int modSensitivity_mV_per_A=185, adc_attenuation_t atten=ADC_11db);
+    CurrentSensor(int pin, int dcOffset_mV, int modSensitivity_mV_per_A=185, adc_attenuation_t atten=ADC_11db, uint8_t resolution=12);
     /**
      * @brief begin method for CurrentSensor class
      * It executes the following code
@@ -56,6 +58,13 @@ public:
      * @return average ADC value
      */
     int avg_ADC(int samples, int tid_m_samples);
+      /**
+     * @brief  Calculates moving average of ADC readings. 
+     * Excutes only the sampling and averaging once per call.
+     * Uses old samples in buffer to calculate moving average.
+     * @return averaged ADC value over 100 samples.
+     */
+    uint moving_avg_ADC();
     /**
      * @brief get_voltage_mV method for CurrentSensor class
      * gets the voltage from API analogReadMilliVolts()
@@ -76,10 +85,17 @@ public:
 private:
     int _samples;
     int _tid_m_samples;
-    int _adc_resolution = 12;
+    uint8_t _adc_resolution = 12;
     int _pin;
     int _dcOffset_mV;
     float _mod_mV_per_A;
+    // Copied from volt.h
+    int _ma_samples =100;
+    // Moving average buffer statically set to 100 samples.
+    int ma_buffer[100];
+    int ma_index;
+    long ma_sum;
+    bool ma_full;
     // Arduino API uses adc_attenuation_t
     // Where ESP_IDF uses adc_atten_t these cannot be mixed
     adc_attenuation_t _atten = ADC_11db;
