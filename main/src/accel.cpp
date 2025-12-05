@@ -123,16 +123,30 @@ bool accelerometer()
 
     resetINT1();
 
-    float xG;
-    float yG;
-    float zG;
-
     if (accelLog.returnLevel("DEBUG"))
     {
         AccelData accel = readAccel();
-        xG = (accel.x - gennemsnitX);
-        yG = (accel.y - gennemsnitY);
-        zG = (accel.z - gennemsnitZ);
+        float xG = (accel.x - gennemsnitX);
+        float yG = (accel.y - gennemsnitY);
+        float zG = (accel.z - gennemsnitZ);
+
+        accelLog.log("min:", "DEBUG", true);
+        accelLog.logln(-16,  "DEBUG", false);
+
+        accelLog.log("max:", "DEBUG", true);
+        accelLog.logln(16,   "DEBUG", false);
+
+        // X
+        accelLog.log("X:",   "DEBUG", true);
+        accelLog.logln(xG, "DEBUG", false);
+
+        // Y
+        accelLog.log("Y:",   "DEBUG", true);
+        accelLog.logln(yG, "DEBUG", false);
+
+        // Z
+        accelLog.log("Z:",   "DEBUG", true);
+        accelLog.logln(zG, "DEBUG", false);
     }
 
     if (intState == HIGH)
@@ -143,19 +157,6 @@ bool accelerometer()
     }
     else
     {
-        Serial.println("Ingen aktivitet");
-        Serial.print("min:");
-        Serial.print(-16);
-        Serial.print("\tmax:");
-        Serial.print(16);
-        Serial.print(" ");
-        Serial.print("X:");
-        Serial.print(xG);
-        Serial.print(" Y:");
-        Serial.print(yG);
-        Serial.print(" Z:");
-        Serial.println(zG);
-        
         return false;
     }
 }
