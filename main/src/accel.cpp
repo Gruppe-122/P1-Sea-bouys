@@ -11,7 +11,7 @@ static float sumX, sumY, sumZ = 0;
 
 static void writeRegister(uint8_t deviceAddress, uint8_t registerAddress, uint8_t value)
 { // funktionen gør at vi kan ændre registrene på ADXL345
-    accelLog.logln("write to the accelometer register", "INFO", true);
+    accelLog.logln("write to the accelometer register", "DEBUG", true);
     Wire.beginTransmission(deviceAddress);
     Wire.write(registerAddress);
     Wire.write(value);
@@ -20,7 +20,7 @@ static void writeRegister(uint8_t deviceAddress, uint8_t registerAddress, uint8_
 
 static byte readRegister(uint8_t deviceAddress, uint8_t registerAddress)
 { // funktionen læser hvad der står på de gældene registre, så der kan tjekkes om det der står er rigtig
-    accelLog.logln("reads from the accelometer register", "INFO", true);
+    accelLog.logln("reads from the accelometer register", "DEBUG", true);
     Wire.beginTransmission(deviceAddress);
     Wire.write(registerAddress);
     Wire.endTransmission(false);
@@ -37,7 +37,7 @@ void resetINT1()
 int accelSetup()
 {
     accelLog.logln("setup accelometer", "INFO", true);
-    Wire.begin(7, 6); // SDA og SCL
+    Wire.begin(6, 7); // SDA og SCL
 
     accelLog.logln("tænder målings mode og autosleep", "INFO", true);
     writeRegister(ADXL345_ADDRESS, 0x2D, 0x1C); // tænder målings mode og autosleep
@@ -47,7 +47,7 @@ int accelSetup()
     writeRegister(ADXL345_ADDRESS, 0x31, 0x01); // range 4G
 
     accelLog.logln("sets (43 for 2.69G - 24 for 1.5G) treshhold", "INFO", true);
-    writeRegister(ADXL345_ADDRESS, 0x24, 43); //(43 for 2.69G - 24 for 1.5G) treshhold
+    writeRegister(ADXL345_ADDRESS, 0x24, 0x18); //(43 for 2.69G - 24 for 1.5G) treshhold
 
     accelLog.logln("aktivere måling på hhv. x, y og z", "INFO", true);
     writeRegister(ADXL345_ADDRESS, 0x27, 0xF0); // aktivere måling på hhv. x, y og z
@@ -66,7 +66,6 @@ int accelSetup()
 
 AccelData readAccel()
 {
-    accelLog.logln("reads accelometer", "INFO", true);
     int16_t raw_x = (readRegister(ADXL345_ADDRESS, 0x33) << 8 | readRegister(ADXL345_ADDRESS, 0x32));
     int16_t raw_y = (readRegister(ADXL345_ADDRESS, 0x35) << 8 | readRegister(ADXL345_ADDRESS, 0x34));
     int16_t raw_z = (readRegister(ADXL345_ADDRESS, 0x37) << 8 | readRegister(ADXL345_ADDRESS, 0x36));
@@ -83,13 +82,6 @@ int calibrate()
 {
     accelLog.log("KALIBRERING starter om 5 sekunder:", "INFO", true);
     accelLog.log("PLACER VERTIKALT FLADT", "INFO", true);
-    if (accelLog.returnLevel("DEBUG"))
-    {
-        for (int x = 5; x > 0; x--)
-
-            Serial.println(x);
-        delay(1000);
-    }
 
     for (int i = 0; i < sizeof(xtest) / sizeof(xtest[0]); i++)
     { // hver gang "i", skal vi readAcceleration og gemme i et array i struct
@@ -108,23 +100,20 @@ int calibrate()
     gennemsnitZ = sumZ / (sizeof(ztest) / sizeof(ztest[0]));
     accelLog.logln("KALIBRERING DONE", "INFO", true);
 
-    accelLog.log("X i m/s2 -> sum ",    "DEBUG", true);
-    accelLog.logln(sumX,                "DEBUG", false);
-    accelLog.log(" gennemsnit ->",      "DEBUG", true);
-    accelLog.logln(gennemsnitX,         "DEBUG", false);
+    accelLog.log("X i m/s2 -> sum ", "DEBUG", true);
+    accelLog.logln(sumX, "DEBUG", false);
+    accelLog.log(" gennemsnit ->", "DEBUG", true);
+    accelLog.logln(gennemsnitX, "DEBUG", false);
 
-    accelLog.log("Y i m/s2 -> sum ",    "DEBUG", true);
-    accelLog.logln(sumY,                "DEBUG", false);
-    accelLog.log(" gennemsnit ->",      "DEBUG", true);
-    accelLog.logln(gennemsnitY+1,       "DEBUG", false);
+    accelLog.log("Y i m/s2 -> sum ", "DEBUG", true);
+    accelLog.logln(sumY, "DEBUG", false);
+    accelLog.log(" gennemsnit ->", "DEBUG", true);
+    accelLog.logln(gennemsnitY + 1, "DEBUG", false);
 
-    accelLog.log("Z i m/s2 -> sum ",    "DEBUG", true);
-    accelLog.logln(sumZ,                "DEBUG", false);
-    accelLog.log(" gennemsnit ->",      "DEBUG", true);
-    accelLog.logln(gennemsnitZ,         "DEBUG", false);
-
-    if (accelLog.returnLevel("DEBUG"))
-        delay(3000);
+    accelLog.log("Z i m/s2 -> sum ", "DEBUG", true);
+    accelLog.logln(sumZ, "DEBUG", false);
+    accelLog.log(" gennemsnit ->", "DEBUG", true);
+    accelLog.logln(gennemsnitZ, "DEBUG", false);
 
     return 1;
 }
@@ -134,37 +123,32 @@ bool accelerometer()
     accelLog.logln("accelerometer functions", "INFO", true);
     int intState = digitalRead(5);
 
-    resetINT1();
+    AccelData accel = readAccel();
+    float xG = (accel.x - gennemsnitX);
+    float yG = (accel.y - gennemsnitY);
+    float zG = (accel.z - gennemsnitZ);
 
-    if (accelLog.returnLevel("DEBUG"))
-    {
-        AccelData accel = readAccel();
-        float xG = (accel.x - gennemsnitX);
-        float yG = (accel.y - gennemsnitY);
-        float zG = (accel.z - gennemsnitZ);
+    accelLog.log("min:", "DEBUG", true);
+    accelLog.logln(-16, "DEBUG", false);
 
-        accelLog.log("min:", "DEBUG", true);
-        accelLog.logln(-16,  "DEBUG", false);
+    accelLog.log("max:", "DEBUG", true);
+    accelLog.logln(16, "DEBUG", false);
 
-        accelLog.log("max:", "DEBUG", true);
-        accelLog.logln(16,   "DEBUG", false);
+    // X
+    accelLog.log("X:", "DEBUG", true);
+    accelLog.logln(xG, "DEBUG", false);
 
-        // X
-        accelLog.log("X:",   "DEBUG", true);
-        accelLog.logln(xG, "DEBUG", false);
+    // Y
+    accelLog.log("Y:", "DEBUG", true);
+    accelLog.logln(yG, "DEBUG", false);
 
-        // Y
-        accelLog.log("Y:",   "DEBUG", true);
-        accelLog.logln(yG, "DEBUG", false);
-
-        // Z
-        accelLog.log("Z:",   "DEBUG", true);
-        accelLog.logln(zG, "DEBUG", false);
-    }
+    // Z
+    accelLog.log("Z:", "DEBUG", true);
+    accelLog.logln(zG, "DEBUG", false);
 
     if (intState == HIGH)
     {
-        accelLog.logln("Aktivitet over 2.69G registreret", "INFO", true);
+        accelLog.logln("Aktivitet registreret", "INFO", true);
         resetINT1();
         return true;
     }

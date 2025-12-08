@@ -2,6 +2,9 @@
 #define VOLT_H
 
 #include <Arduino.h>
+#include "log.h"
+
+extern logger voltLog;
 
 /**
  * @class Volt

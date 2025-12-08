@@ -14,6 +14,44 @@ double convertTodegrees(double raw) {
   return decimal;
 }
 
+void syncTimeFromGPS(const char *rawTime)
+{
+    // Parse time: HHMMSS.sss (UTC)
+    int hour = (rawTime[0] - '0') * 10 + (rawTime[1] - '0');
+    int min  = (rawTime[2] - '0') * 10 + (rawTime[3] - '0');
+    int sec  = (rawTime[4] - '0') * 10 + (rawTime[5] - '0');
+
+    int ms = 0;
+    if (rawTime[6] == '.' && rawTime[7] && rawTime[8] && rawTime[9]) {
+        ms = (rawTime[7] - '0') * 100 +
+             (rawTime[8] - '0') * 10 +
+             (rawTime[9] - '0');
+    }
+
+    // ---- Set timezone for Copenhagen ----
+    setenv("TZ", "CET-1CEST,M3.5.0/02:00:00,M10.5.0/03:00:00", 1);
+    tzset();
+
+    // ---- Build a UTC tm ----
+    struct tm t = {};
+    t.tm_year = 2025 - 1900;
+    t.tm_mon  = 12;
+    t.tm_mday = 1;
+    t.tm_hour = hour;
+    t.tm_min  = min;
+    t.tm_sec  = sec;
+
+    // Convert *as UTC*
+    time_t utc_epoch = timegm(&t);
+
+    // ---- Set local Copenhagen time (ESP32 converts automatically) ----
+    struct timeval tv;
+    tv.tv_sec  = utc_epoch;
+    tv.tv_usec = ms * 1000;
+
+    settimeofday(&tv, nullptr);
+}
+
 void readGGAData(char *inputData, nmeaData *data) {
   gpsLog.logln("decode gps data (GGA DATA)", "INFO", true);
   char *buff;

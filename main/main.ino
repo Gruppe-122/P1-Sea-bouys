@@ -48,86 +48,124 @@ CurrentSensor current(CURRENTSENSOR_PIN, DC_OFFSET);
 meshalternativ buoy;
 
 // logs
-logger accelLog = logger("ACCELOMETER", "DEBUG");
-logger currentLog = logger("CURRENT", "SEILENT");
-logger voltLog = logger("VOLT", "SEILENT");
-logger meshLog = logger("MESH", "DEBUG");
-logger gpsLog = logger("GPS", "SEILENT");
-
+logger accelLog = logger("ACCELOMETER", "INFO");
+logger currentLog = logger("CURRENT", "INFO");
+logger voltLog = logger("VOLT", "INFO");
+logger meshLog = logger("MESH", "INFO");
+logger gpsLog = logger("GPS", "INFO");
 logger mainLog = logger("MAIN", "TEST");
 
 void logBuoyData(const BuoyData &data, const char *level)
 {
-    mainLog.log("buoy_number: ", level, true);
-    mainLog.logln(data.buoy_number, level, false);
+  mainLog.log("buoy_number: ", level, true);
+  mainLog.logln(data.buoy_number, level, false);
 
-    mainLog.log("sent_from: ", level, true);
-    mainLog.logln(data.sent_from, level, false);
+  mainLog.log("sent_from: ", level, true);
+  mainLog.logln(data.sent_from, level, false);
 
-    mainLog.log("battery_voltage: ", level, true);
-    mainLog.logln(data.battery_voltage, level, false);
+  mainLog.log("battery_voltage: ", level, true);
+  mainLog.logln(data.battery_voltage, level, false);
 
-    mainLog.log("gps_latitude: ", level, true);
-    mainLog.logln(data.gps_latitude, level, false);
+  mainLog.log("gps_latitude: ", level, true);
+  mainLog.logln(data.gps_latitude, level, false);
 
-    mainLog.log("gps_longitude: ", level, true);
-    mainLog.logln(data.gps_longitude, level, false);
+  mainLog.log("gps_longitude: ", level, true);
+  mainLog.logln(data.gps_longitude, level, false);
 
-    mainLog.log("accelerometer_jerk: ", level, true);
-    mainLog.logln(data.accelerometer_jerk, level, false);
+  mainLog.log("accelerometer_jerk: ", level, true);
+  mainLog.logln(data.accelerometer_jerk, level, false);
 
-    mainLog.log("lamp_current: ", level, true);
-    mainLog.logln(data.lamp_current, level, false);
+  mainLog.log("lamp_current: ", level, true);
+  mainLog.logln(data.lamp_current, level, false);
+}
+
+unsigned long lastRun = 0;
+const unsigned long interval = 60UL * 1000UL; // 1 minut
+
+void printLocalTime()
+{
+  struct tm timeinfo;
+  if (!getLocalTime(&timeinfo))
+  {
+    Serial.println("Failed to obtain time");
+    mainLog.logln("Failed to obtain time", "INFO", true);
+    return;
+  }
+
+  char buffer[64];
+  strftime(buffer, sizeof(buffer), "%H:%M:%S", &timeinfo);
+
+  mainLog.logln(buffer, "INFO", true);
 }
 
 void collectSensorData()
 {
-    // pin power setup
-    digitalWrite(CURRENT_POWER_PIN, HIGH);
-    digitalWrite(VOLTAGE_POWER_PIN, HIGH);
-    delay(100);
+  mainLog.logln("collect sensors data", "INFO", true);
 
-    // Accelometer
-    ownData.accelerometer_jerk = accelerometer();
-    // Voltage
-    int avg_ADC = 0;
-    for (int i = 0; i < 100; i++) {
-      avg_ADC += battery.moving_avg_ADC();
-    }
-    ownData.battery_voltage = battery.ADC_to_mV(avg_ADC);
-    // GPS
-    readGNSS(&GNSSData, GPSSerial);
-    ownData.gps_latitude = GNSSData.lat;
-    ownData.gps_longitude = GNSSData.lon;
-    // UTC Missing
-    Serial.println(current.measure_current_mA());
-    bool isLampCurrent = current.measure_current_mA() > 0 ? true : false;
-    ownData.lamp_current = isLampCurrent;
+  // pin power setup
+  digitalWrite(CURRENT_POWER_PIN, HIGH);
+  digitalWrite(VOLTAGE_POWER_PIN, HIGH);
 
-    // pin power clean up
-    digitalWrite(CURRENT_POWER_PIN, LOW);
-    digitalWrite(VOLTAGE_POWER_PIN, LOW);
+  // wait for hardware to be ready
+  delay(100);
+
+  // Accelometer
+  ownData.accelerometer_jerk = accelerometer();
+
+  // Voltage
+  int avg_ADC = 0;
+  for (int i = 0; i < 100; i++)
+  {
+    avg_ADC += battery.moving_avg_ADC();
+  }
+  ownData.battery_voltage = battery.ADC_to_mV(avg_ADC);
+
+  // GPS
+  readGNSS(&GNSSData, GPSSerial);
+  ownData.gps_latitude = GNSSData.lat;
+  ownData.gps_longitude = GNSSData.lon;
+  unsigned long now = millis();
+  if (now - lastRun >= interval)
+  {
+    lastRun = now;
+
+    syncTimeFromGPS(GNSSData.utc);
+  }
+  printLocalTime();
+
+  // UTC Missing
+  bool isLampCurrent = current.measure_current_mA() > 0 ? true : false;
+  ownData.lamp_current = isLampCurrent;
+
+  // pin power clean up
+  digitalWrite(CURRENT_POWER_PIN, LOW);
+  digitalWrite(VOLTAGE_POWER_PIN, LOW);
 }
 
 void setup()
 {
   delay(1000);
   Serial.begin(115200);
+
   // GPS
   initGNSS(GPSSerial, GPSRX, GPSTX);
+
   // voltage measurements
   pinMode(VOLT_PIN, INPUT);
-  pinMode(VOLTAGE_POWER_PIN, OUTPUT); 
+  pinMode(VOLTAGE_POWER_PIN, OUTPUT);
   digitalWrite(VOLTAGE_POWER_PIN, LOW);
+
   // mesh
   buoy.start_radio();
   ownData.buoy_number = BUOY_ID;
+
   // Current sensor
   pinMode(CURRENTSENSOR_PIN, INPUT);
   current.set_sampling(ADC_N_SAMPLES, ADC_SAMPLING_FREQUENCY);
   current.begin();
-  pinMode(CURRENT_POWER_PIN, OUTPUT); 
+  pinMode(CURRENT_POWER_PIN, OUTPUT);
   digitalWrite(CURRENT_POWER_PIN, LOW);
+
   // Accelometer
   pinMode(5, INPUT);
   accelSetup();
@@ -146,27 +184,33 @@ void loop()
   {
     collectSensorData();
     logBuoyData(ownData, "TEST");
+
     // Use time to check when to send (maybe a delay on found time vs expected time sequence starts)
     // Comment above only works if we can get milliseconds; system needs changing if not
     // Buoy ID in seconds + 0.5 seconds before sending
     delay((BUOY_ID * 1000) + 500);
     buoy.send_data(ownData);
+
     // Adding own buoy to the array of sent bouys
     idCheck[0] = BUOY_ID;
     receivedIDs++;
+
     // Create a struct, get data and start listening again
     initialized = 1;
   }
 
   buoy.receive_data(receivedData);
   bool alreadySent;
+
+  // Amount of IDs received, check if already in array
   for (int i = 0; i < receivedIDs; i++)
-  { // Amount of IDs received, check if already in array
+  {
     if (receivedData.buoy_number == idCheck[i])
     {
       alreadySent = true;
     }
   }
+
   // If it's from a buoy it hasn't gotten info from before, and it's maximum 3 buoys above my own ID
   if (alreadySent = false && BUOY_ID < receivedData.sent_from < BUOY_ID + 4)
   {
@@ -174,15 +218,17 @@ void loop()
     int amountAway = receivedData.sent_from - BUOY_ID - 1;
     amountAway = amountAway * 600;
     delay(amountAway);
+
     // Take buoy number, put into idCheck with received IDs number, add a new received ID for the next buoy
     idCheck[receivedIDs] = receivedData.buoy_number;
     receivedIDs++;
+
     // Send data onwards
     receivedData.sent_from = BUOY_ID;
     buoy.send_data(receivedData);
-  }
 
-  delay(2000);
-  // After a certain amount of time, check how long it's been awake
-  // Then GoToSleep
+    delay(300);
+    // After a certain amount of time, check how long it's been awake
+    // Then GoToSleep
+  }
 }
