@@ -4,12 +4,17 @@
 #include <stdlib.h>
 #include <HardwareSerial.h>
 #include <string.h>
+#include "log.h"
+#include <sys/time.h>
+#include "time.h"
 
+extern logger gpsLog;
 typedef struct {
   bool vld;
   char latDir, lonDir;
   int nrSat;
-  double lat, lon, utc, horPosAck;
+  double lat, lon, horPosAck;
+  char utc[10];
 } nmeaData;
 
 /**
@@ -37,5 +42,11 @@ void initGNSS(HardwareSerial &serPort, int RX_pin, int TX_pin);
  * @param GNSSdata refrence to nemaData struct
  */
 void PrintGPSData(nmeaData &GNSSData);
+
+/**
+ * @brief sets time form gps to esp32
+ * @param rawTime format hhmmss.ss
+ */
+void syncTimeFromGPS(const char *rawTime);
 
 #endif

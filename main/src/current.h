@@ -2,6 +2,9 @@
 #define CURRENT_H
 
 #include <Arduino.h>
+#include "log.h"
+
+extern logger currentLog;
 
 /**
  * @class CurrentSensor
