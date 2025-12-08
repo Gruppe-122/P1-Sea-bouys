@@ -8,20 +8,46 @@ static bool DEBUG = false;
 static float xtest[100];
 static float ytest[100];
 static float ztest[100];
-static float gennemsnitX, gennemsnitY, gennemsnitZ = 0;
-static float sumX, sumY, sumZ = 0;
+static float gennemsnitX = 0, gennemsnitY = 0, gennemsnitZ = 0;
+static float sumX = 0, sumY = 0, sumZ = 0;
+
+static void writeRegister(uint8_t deviceAddress, uint8_t registerAddress, uint8_t value)
+{ // funktionen gør at vi kan ændre registrene på ADXL345
+    Wire.beginTransmission(deviceAddress);
+    Wire.write(registerAddress);
+    Wire.write(value);
+    Wire.endTransmission();
+}
+
+static byte readRegister(uint8_t deviceAddress, uint8_t registerAddress)
+{ // funktionen læser hvad der står på de gældene registre, så der kan tjekkes om det der står er rigtig
+    Wire.beginTransmission(deviceAddress);
+    Wire.write(registerAddress);
+    Wire.endTransmission(false);
+    Wire.requestFrom(deviceAddress, (uint8_t)1);
+    return Wire.read();
+}
+
+void resetINT1()
+{
+    readRegister(ADXL345_ADDRESS, 0x30); // ifølge datasheet, når man læser int_source, så clearer den alle interrupts
+}
 
 int accelSetup()
 {
     pinMode(5, INPUT);
-    Wire.begin(7, 6); // SDA og SCL
+    Wire.begin(6, 7); // SDA og SCL
 
     writeRegister(ADXL345_ADDRESS, 0x2D, 0x1C); // tænder målings mode og autosleep
     delay(10);
 
     writeRegister(ADXL345_ADDRESS, 0x31, 0x01); // range 4G
 
-    writeRegister(ADXL345_ADDRESS, 0x24, 43); //(43 for 2.69G - 24 for 1.5G) treshhold
+    writeRegister(ADXL345_ADDRESS, 0x24, 24);   //(43 for 2.69G - 24 for 1.5G) treshhold
+
+    writeRegister(ADXL345_ADDRESS, 0x25, 16);   // aktivere threshhold inaktivitet
+
+    writeRegister(ADXL345_ADDRESS, 0x26, 10);   // 10 sekunders inaktivitet aktivere sleep-mode
 
     writeRegister(ADXL345_ADDRESS, 0x27, 0xF0); // aktivere måling på hhv. x, y og z
 
@@ -29,7 +55,7 @@ int accelSetup()
 
     writeRegister(ADXL345_ADDRESS, 0x2E, 0x10); // aktivere interrupt
 
-    writeRegister(ADXL345_ADDRESS, 0x2C, 0x0D); // i low-power mode sender vi data med 400hz, for at spare mest muligt 0x18-> 12.5hz 0x1B->100hz 0x0D -> 400hz
+    writeRegister(ADXL345_ADDRESS, 0x2C, 0x1B); // i low-power mode sender vi data med 400hz, for at spare mest muligt 0x18-> 12.5hz 0x1B->100hz 0x0D -> 400hz
 
     return 1;
 }
@@ -131,26 +157,4 @@ bool accelerometer()
         // Serial.println(zG);
         return false;
     }
-}
-
-static void writeRegister(uint8_t deviceAddress, uint8_t registerAddress, uint8_t value)
-{ // funktionen gør at vi kan ændre registrene på ADXL345
-    Wire.beginTransmission(deviceAddress);
-    Wire.write(registerAddress);
-    Wire.write(value);
-    Wire.endTransmission();
-}
-
-static byte readRegister(uint8_t deviceAddress, uint8_t registerAddress)
-{ // funktionen læser hvad der står på de gældene registre, så der kan tjekkes om det der står er rigtig
-    Wire.beginTransmission(deviceAddress);
-    Wire.write(registerAddress);
-    Wire.endTransmission(false);
-    Wire.requestFrom(deviceAddress, (uint8_t)1);
-    return Wire.read();
-}
-
-void resetINT1()
-{
-    readRegister(ADXL345_ADDRESS, 0x30); // ifølge datasheet, når man læser int_source, så clearer den alle interrupts
 }

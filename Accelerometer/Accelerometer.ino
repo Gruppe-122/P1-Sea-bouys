@@ -27,7 +27,7 @@ AccelData readAcceleration() {
 
 void setup() {
   Serial.begin(115200);
-  Wire.begin(7, 6);  //fortæller hvilke pins der bruges, 7 = SDA og 6 = SCL
+  Wire.begin(6, 7);  //fortæller hvilke pins der bruges, 6 = SDA og 7 = SCL
 
   if (!accel.begin()) {
     Serial.println("ADXL345 ikke fundet!");

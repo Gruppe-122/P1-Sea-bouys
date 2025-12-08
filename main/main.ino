@@ -40,12 +40,13 @@ BuoyData ownData;
 BuoyData receivedData;
 
 // Objects
-Volt battery(VOLT_PIN, R1, R2, ADC_11db, ADC_RESOLUTION);
+Volt battery(VOLT_PIN, R1, R2);
 CurrentSensor current(CURRENTSENSOR_PIN, DC_OFFSET);
 
 void collectSensorData()
 {
     // Check accelerometer
+    int accelSetup();
     ownData.accelerometer_jerk = accelerometer();
     // Check battery
     ownData.battery_voltage = battery.read_battery_voltage_mV();
