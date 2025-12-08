@@ -53,7 +53,21 @@ logger currentLog = logger("CURRENT", "INFO");
 logger voltLog = logger("VOLT", "INFO");
 logger meshLog = logger("MESH", "INFO");
 logger gpsLog = logger("GPS", "INFO");
-logger mainLog = logger("MAIN", "TEST");
+logger mainLog = logger("MAIN", "INFO");
+
+unsigned long lastRun = 0;
+const unsigned long interval = 10UL * 1000UL; // 1 minut
+void syncTime(){
+  mainLog.logln("started sync", "INFO", true);
+  unsigned long now = millis();
+  if (now - lastRun >= interval)
+  {
+    lastRun = now;
+    readGNSS(&GNSSData, GPSSerial);
+    syncTimeFromGPS(GNSSData.utc);
+    mainLog.logln("time sync", "INFO", true);
+  }
+}
 
 void logBuoyData(const BuoyData &data, const char *level)
 {
@@ -77,25 +91,6 @@ void logBuoyData(const BuoyData &data, const char *level)
 
   mainLog.log("lamp_current: ", level, true);
   mainLog.logln(data.lamp_current, level, false);
-}
-
-unsigned long lastRun = 0;
-const unsigned long interval = 60UL * 1000UL; // 1 minut
-
-void printLocalTime()
-{
-  struct tm timeinfo;
-  if (!getLocalTime(&timeinfo))
-  {
-    Serial.println("Failed to obtain time");
-    mainLog.logln("Failed to obtain time", "INFO", true);
-    return;
-  }
-
-  char buffer[64];
-  strftime(buffer, sizeof(buffer), "%H:%M:%S", &timeinfo);
-
-  mainLog.logln(buffer, "INFO", true);
 }
 
 void collectSensorData()
@@ -124,14 +119,6 @@ void collectSensorData()
   readGNSS(&GNSSData, GPSSerial);
   ownData.gps_latitude = GNSSData.lat;
   ownData.gps_longitude = GNSSData.lon;
-  unsigned long now = millis();
-  if (now - lastRun >= interval)
-  {
-    lastRun = now;
-
-    syncTimeFromGPS(GNSSData.utc);
-  }
-  printLocalTime();
 
   // UTC Missing
   bool isLampCurrent = current.measure_current_mA() > 0 ? true : false;
@@ -149,6 +136,7 @@ void setup()
 
   // GPS
   initGNSS(GPSSerial, GPSRX, GPSTX);
+  syncTime();
 
   // voltage measurements
   pinMode(VOLT_PIN, INPUT);

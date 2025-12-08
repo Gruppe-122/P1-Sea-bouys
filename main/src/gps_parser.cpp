@@ -14,41 +14,68 @@ double convertTodegrees(double raw) {
   return decimal;
 }
 
-#include <time.h>
-#include <sys/time.h>
-
 void syncTimeFromGPS(const char *rawTime)
 {
-    if (!rawTime) return;
-    if (strlen(rawTime) < 6) return;  // need at least HHMMSS
+  gpsLog.log("rawtime : ", "DEBUG", true);
+  gpsLog.logln(rawTime, "DEBUG", false);
 
-    // Parse time: HHMMSS.sss (UTC)
-    int hour = (rawTime[0] - '0') * 10 + (rawTime[1] - '0');
-    int min  = (rawTime[2] - '0') * 10 + (rawTime[3] - '0');
-    int sec  = (rawTime[4] - '0') * 10 + (rawTime[5] - '0');
+  if (!rawTime) return;
+  if (strlen(rawTime) < 6) return;  // need at least HHMMSS
 
-    int ms = 0;
-    if (rawTime[6] == '.' && rawTime[7] && rawTime[8] && rawTime[9]) {
-        ms = (rawTime[7] - '0') * 100 +
-             (rawTime[8] - '0') * 10 +
-             (rawTime[9] - '0');
-    }
+  // Parse time: HHMMSS.sss (UTC)
+  int hour = (rawTime[0] - '0') * 10 + (rawTime[1] - '0');
+  int min  = (rawTime[2] - '0') * 10 + (rawTime[3] - '0');
+  int sec  = (rawTime[4] - '0') * 10 + (rawTime[5] - '0');
 
-    time_t now = time(nullptr);
-    struct tm t {};
-    gmtime_r(&now, &t);
+  int ms = 0;
+  if (rawTime[6] == '.' && rawTime[7] && rawTime[8] && rawTime[9]) {
+      ms = (rawTime[7] - '0') * 100 +
+            (rawTime[8] - '0') * 10 +
+            (rawTime[9] - '0');
+  }
 
-    t.tm_hour = hour;
-    t.tm_min  = min;
-    t.tm_sec  = sec;
+  time_t now = time(nullptr);
+  struct tm t {};
+  gmtime_r(&now, &t);
 
-    time_t utc_epoch = mktime(&t);
+  t.tm_hour = hour;
+  t.tm_min  = min;
+  t.tm_sec  = sec;
 
-    struct timeval tv;
-    tv.tv_sec  = utc_epoch;
-    tv.tv_usec = ms * 1000;
+  time_t utc_epoch = mktime(&t);
 
-    settimeofday(&tv, nullptr);
+  struct timeval tv;
+  tv.tv_sec  = utc_epoch;
+  tv.tv_usec = ms * 1000;
+
+  int res = settimeofday(&tv, nullptr);
+  if (res == 0) {
+      gpsLog.logln("settimeofday OK", "DEBUG", true);
+  } else {
+      gpsLog.logln("settimeofday FAILED", "DEBUG", true);
+  }
+
+  gpsLog.log("hour: ", "DEBUG", true);
+  gpsLog.logln(hour, "DEBUG", false);
+
+  gpsLog.log("min: ", "DEBUG", true);
+  gpsLog.logln(min, "DEBUG", false);
+
+  gpsLog.log("sec: ", "DEBUG", true);
+  gpsLog.logln(sec, "DEBUG", false);
+
+  // Debug
+  struct timeval getTv;
+  gettimeofday(&getTv, nullptr);
+
+  struct tm timeinfo;
+  localtime_r(&tv.tv_sec, &timeinfo);
+
+  char buffer[32];
+  strftime(buffer, sizeof(buffer), "%H:%M:%S", &timeinfo);
+
+  gpsLog.log("tid", "DEBUG", true);
+  gpsLog.logln(buffer, "DEBUG", false);
 }
 
 
