@@ -5,6 +5,7 @@
 #include <HardwareSerial.h>
 #include <string.h>
 #include "log.h"
+#include <sys/time.h>
 #include "time.h"
 
 extern logger gpsLog;
@@ -12,7 +13,8 @@ typedef struct {
   bool vld;
   char latDir, lonDir;
   int nrSat;
-  double lat, lon, utc, horPosAck;
+  double lat, lon, horPosAck;
+  char utc[10];
 } nmeaData;
 
 /**

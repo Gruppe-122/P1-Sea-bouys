@@ -14,8 +14,14 @@ double convertTodegrees(double raw) {
   return decimal;
 }
 
+#include <time.h>
+#include <sys/time.h>
+
 void syncTimeFromGPS(const char *rawTime)
 {
+    if (!rawTime) return;
+    if (strlen(rawTime) < 6) return;  // need at least HHMMSS
+
     // Parse time: HHMMSS.sss (UTC)
     int hour = (rawTime[0] - '0') * 10 + (rawTime[1] - '0');
     int min  = (rawTime[2] - '0') * 10 + (rawTime[3] - '0');
@@ -28,29 +34,23 @@ void syncTimeFromGPS(const char *rawTime)
              (rawTime[9] - '0');
     }
 
-    // ---- Set timezone for Copenhagen ----
-    setenv("TZ", "CET-1CEST,M3.5.0/02:00:00,M10.5.0/03:00:00", 1);
-    tzset();
+    time_t now = time(nullptr);
+    struct tm t {};
+    gmtime_r(&now, &t);
 
-    // ---- Build a UTC tm ----
-    struct tm t = {};
-    t.tm_year = 2025 - 1900;
-    t.tm_mon  = 12;
-    t.tm_mday = 1;
     t.tm_hour = hour;
     t.tm_min  = min;
     t.tm_sec  = sec;
 
-    // Convert *as UTC*
-    time_t utc_epoch = timegm(&t);
+    time_t utc_epoch = mktime(&t);
 
-    // ---- Set local Copenhagen time (ESP32 converts automatically) ----
     struct timeval tv;
     tv.tv_sec  = utc_epoch;
     tv.tv_usec = ms * 1000;
 
     settimeofday(&tv, nullptr);
 }
+
 
 void readGGAData(char *inputData, nmeaData *data) {
   gpsLog.logln("decode gps data (GGA DATA)", "INFO", true);
@@ -61,7 +61,10 @@ void readGGAData(char *inputData, nmeaData *data) {
   buff = strtok(inputData, ",*");
   //UTC time hhmmss.sss
   buff = strtok(NULL, ",");
-  data->utc = atof(buff);
+  if (buff != NULL) {
+    strncpy(data->utc, buff, sizeof(data->utc) - 1);
+    data->utc[sizeof(data->utc) - 1] = '\0';
+  }
   //Latitude ddmm.mmmm
   buff = strtok(NULL, ",");
   data->lat = USE_DECIMAL_DEGREES ? convertTodegrees(atof(buff)) : atof(buff);
