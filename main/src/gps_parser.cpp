@@ -92,7 +92,7 @@ void readGGAData(char *inputData, nmeaData *data) {
     strncpy(data->utc, buff, sizeof(data->utc) - 1);
     data->utc[sizeof(data->utc) - 1] = '\0';
   }else {
-    data->utc = buff
+    data->utc = NULL;
   }
   //Latitude ddmm.mmmm
   buff = strtok(NULL, ",");
