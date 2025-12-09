@@ -156,7 +156,6 @@ void setup()
   digitalWrite(CURRENT_POWER_PIN, LOW);
 
   // Accelometer
-  pinMode(5, INPUT);
   accelSetup();
   calibrate();
 }
@@ -198,26 +197,26 @@ void loop()
     {
       alreadySent = true;
     }
+    }
+
+    // If it's from a buoy it hasn't gotten info from before, and it's maximum 3 buoys above my own ID
+    if (alreadySent = false && BUOY_ID < receivedData.sent_from < BUOY_ID + 4)
+    {
+      // If it's 1 buoy above, don't delay. Otherwise, delay with +0,6 sekunder pr afstand væk
+      int amountAway = receivedData.sent_from - BUOY_ID - 1;
+      amountAway = amountAway * 600;
+      delay(amountAway);
+
+      // Take buoy number, put into idCheck with received IDs number, add a new received ID for the next buoy
+      idCheck[receivedIDs] = receivedData.buoy_number;
+      receivedIDs++;
+
+      // Send data onwards
+      receivedData.sent_from = BUOY_ID;
+      buoy.send_data(receivedData);
+
+      delay(300);
+      // After a certain amount of time, check how long it's been awake
+      // Then GoToSleep
+    }
   }
-
-  // If it's from a buoy it hasn't gotten info from before, and it's maximum 3 buoys above my own ID
-  if (alreadySent = false && BUOY_ID < receivedData.sent_from < BUOY_ID + 4)
-  {
-    // If it's 1 buoy above, don't delay. Otherwise, delay with +0,6 sekunder pr afstand væk
-    int amountAway = receivedData.sent_from - BUOY_ID - 1;
-    amountAway = amountAway * 600;
-    delay(amountAway);
-
-    // Take buoy number, put into idCheck with received IDs number, add a new received ID for the next buoy
-    idCheck[receivedIDs] = receivedData.buoy_number;
-    receivedIDs++;
-
-    // Send data onwards
-    receivedData.sent_from = BUOY_ID;
-    buoy.send_data(receivedData);
-
-    delay(300);
-    // After a certain amount of time, check how long it's been awake
-    // Then GoToSleep
-  }
-}

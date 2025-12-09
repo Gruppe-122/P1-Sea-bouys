@@ -6,12 +6,12 @@
 static float xtest[100];
 static float ytest[100];
 static float ztest[100];
-static float gennemsnitX, gennemsnitY, gennemsnitZ = 0;
-static float sumX, sumY, sumZ = 0;
+static float gennemsnitX = 0, gennemsnitY = 0, gennemsnitZ = 0;
+static float sumX = 0, sumY = 0, sumZ = 0;
+volatile bool activityDetected = false;
 
 static void writeRegister(uint8_t deviceAddress, uint8_t registerAddress, uint8_t value)
 { // funktionen gør at vi kan ændre registrene på ADXL345
-    accelLog.logln("write to the accelometer register", "DEBUG", true);
     Wire.beginTransmission(deviceAddress);
     Wire.write(registerAddress);
     Wire.write(value);
@@ -20,7 +20,6 @@ static void writeRegister(uint8_t deviceAddress, uint8_t registerAddress, uint8_
 
 static byte readRegister(uint8_t deviceAddress, uint8_t registerAddress)
 { // funktionen læser hvad der står på de gældene registre, så der kan tjekkes om det der står er rigtig
-    accelLog.logln("reads from the accelometer register", "DEBUG", true);
     Wire.beginTransmission(deviceAddress);
     Wire.write(registerAddress);
     Wire.endTransmission(false);
@@ -39,27 +38,36 @@ int accelSetup()
     accelLog.logln("setup accelometer", "INFO", true);
     Wire.begin(6, 7); // SDA og SCL
 
-    accelLog.logln("tænder målings mode og autosleep", "INFO", true);
-    writeRegister(ADXL345_ADDRESS, 0x2D, 0x1C); // tænder målings mode og autosleep
+    accelLog.logln("tænder målings mode", "INFO", true);
+    writeRegister(ADXL345_ADDRESS, 0x2D, 0x08);
     delay(10);
 
     accelLog.logln("sets range 4G", "INFO", true);
     writeRegister(ADXL345_ADDRESS, 0x31, 0x01); // range 4G
 
-    accelLog.logln("sets (43 for 2.69G - 24 for 1.5G) treshhold", "INFO", true);
-    writeRegister(ADXL345_ADDRESS, 0x24, 0x18); //(43 for 2.69G - 24 for 1.5G) treshhold
+    accelLog.logln("sets (43 for 2.69G - 0x18 for 1.5G) treshhold", "INFO", true);
+    writeRegister(ADXL345_ADDRESS, 0x24, 0x10); //(0x18 for 1.5G) treshhold
 
     accelLog.logln("aktivere måling på hhv. x, y og z", "INFO", true);
     writeRegister(ADXL345_ADDRESS, 0x27, 0xF0); // aktivere måling på hhv. x, y og z
 
+    writeRegister(ADXL345_ADDRESS, 0x2E, 0x00);
+
     accelLog.logln("alle bits sat til 0, for at aktivere på INT1, modsat for INT2", "INFO", true);
     writeRegister(ADXL345_ADDRESS, 0x2F, 0x00); // alle bits sat til 0, for at aktivere på INT1, modsat for INT2
+
+    writeRegister(ADXL345_ADDRESS, 0x38, 0x00);
 
     accelLog.logln("aktivere interrupt", "INFO", true);
     writeRegister(ADXL345_ADDRESS, 0x2E, 0x10); // aktivere interrupt
 
-    accelLog.logln("i low-power mode sender vi data med 400hz, for at spare mest muligt 0x18-> 12.5hz 0x1B->100hz 0x0D -> 400hz", "INFO", true);
-    writeRegister(ADXL345_ADDRESS, 0x2C, 0x0D); // i low-power mode sender vi data med 400hz, for at spare mest muligt 0x18-> 12.5hz 0x1B->100hz 0x0D -> 400hz
+    accelLog.logln("0x1B->100hz 0x0D -> 400hz", "INFO", true);
+    writeRegister(ADXL345_ADDRESS, 0x2C, 0x0B); // 0x1B->100hz 0x0D -> 400hz
+
+    pinMode(5, INPUT_PULLUP);
+    delay(10);
+
+    resetINT1();
 
     return 1;
 }
@@ -120,7 +128,6 @@ int calibrate()
 
 bool accelerometer()
 {
-    accelLog.logln("accelerometer functions", "INFO", true);
     int intState = digitalRead(5);
 
     AccelData accel = readAccel();
@@ -148,9 +155,27 @@ bool accelerometer()
 
     if (intState == HIGH)
     {
-        accelLog.logln("Aktivitet registreret", "INFO", true);
+        accelLog.logln("!!AKTIVITET REGISTRERET!!", "INFO", true);
         resetINT1();
         return true;
     }
+
+    // byte intSource = readRegister(ADXL345_ADDRESS, 0x30);
+    // Serial.print("INT_SOURCE register: 0x");
+    // Serial.println(intSource, HEX);
+    // if (intSource & 0x10)
+    // {
+    //     Serial.println("!!AKTIVITET AKTIVITET!!");
+    //     resetINT1();
+    //     return true;
+    // }
+    // else
+    // {
+    //     Serial.println("INGEN AKTIVITET");
+    //     Serial.print("Actual interrupt: 0x");
+    //     Serial.println(intSource, HEX);
+
+    //     resetINT1();
+    // }
     return false;
 }
