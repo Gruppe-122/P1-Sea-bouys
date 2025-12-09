@@ -25,7 +25,7 @@ static byte readRegister(uint8_t deviceAddress, uint8_t registerAddress)
     Wire.endTransmission(false);
     Wire.requestFrom(deviceAddress, (uint8_t)1);
     return Wire.read();
-}
+}  
 
 void resetINT1()
 {
@@ -64,7 +64,7 @@ int accelSetup()
     accelLog.logln("0x1B->100hz 0x0D -> 400hz", "INFO", true);
     writeRegister(ADXL345_ADDRESS, 0x2C, 0x0B); // 0x1B->100hz 0x0D -> 400hz
 
-    pinMode(5, INPUT_PULLUP);
+    pinMode(5, INPUT_PULLDOWN);
     delay(10);
 
     resetINT1();
