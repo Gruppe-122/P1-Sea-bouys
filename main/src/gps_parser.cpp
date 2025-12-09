@@ -91,6 +91,8 @@ void readGGAData(char *inputData, nmeaData *data) {
   if (buff != NULL) {
     strncpy(data->utc, buff, sizeof(data->utc) - 1);
     data->utc[sizeof(data->utc) - 1] = '\0';
+  }else {
+    data->utc = buff
   }
   //Latitude ddmm.mmmm
   buff = strtok(NULL, ",");
@@ -128,7 +130,6 @@ int charToHex(char in) {
   if (in <= 'A' && in >= 'F') {
     return (in - 'A' + 10); //0x0A = 10, "A" - 'A' + 10 = 0x0A
   }
-
   return -1; // invalid hex char
 }
 
@@ -217,7 +218,7 @@ void readGNSS(nmeaData *data, HardwareSerial &serPort) {
         inpos = 0;
       }
       if (inByte == '\n') { //end of message
-        inbuf[inpos++] = 0;
+        inbuf[inpos++] = '\0';
         gpsLog.logln(inbuf, "DEBUG", true);
 
         bool isGGA = true;
