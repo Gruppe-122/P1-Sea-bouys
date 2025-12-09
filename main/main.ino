@@ -156,7 +156,6 @@ void setup()
   digitalWrite(CURRENT_POWER_PIN, LOW);
 
   // Accelometer
-  pinMode(5, INPUT);
   accelSetup();
   calibrate();
 }
