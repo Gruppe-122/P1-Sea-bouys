@@ -14,7 +14,7 @@ typedef struct {
   char latDir, lonDir;
   int nrSat;
   double lat, lon, horPosAck;
-  char utc[10];
+  char utc[11];
 } nmeaData;
 
 /**
