@@ -174,7 +174,7 @@ int verifyChkSum(char *inputData) {
 }
 
 int parseGNSSData(char *inputData, nmeaData *data) {
-  gpsLog.logln("varify data", "INFO", true);
+  gpsLog.logln("parse GNSS Data", "INFO", true);
   if (verifyChkSum(inputData) == 1) {
     readGGAData(inputData, data); //shreds the string it is passed (if you need it afterwards give it a copy)
     if (data->vld == 1) {

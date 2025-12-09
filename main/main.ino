@@ -37,6 +37,8 @@
 #define CURRENT_POWER_PIN 0
 #define VOLTAGE_POWER_PIN 2
 
+#define uS_TO_S_FACTOR 1000000ULL 
+
 // Structs
 nmeaData GNSSData;
 BuoyData ownData;
@@ -52,7 +54,7 @@ logger accelLog = logger("ACCELOMETER", "INFO");
 logger currentLog = logger("CURRENT", "INFO");
 logger voltLog = logger("VOLT", "INFO");
 logger meshLog = logger("MESH", "INFO");
-logger gpsLog = logger("GPS", "INFO");
+logger gpsLog = logger("GPS", "DEBUG");
 logger mainLog = logger("MAIN", "INFO");
 
 unsigned long lastRun = 0;
@@ -130,10 +132,21 @@ void collectSensorData()
   digitalWrite(VOLTAGE_POWER_PIN, LOW);
 }
 
+void sleep(unsigned long sec = 1800){
+  esp_sleep_enable_ext0_wakeup(5, HIGH)
+  esp_sleep_enable_timer_wakeup(sec * uS_TO_S_FACTOR);
+  esp_deep_sleep_start();
+}
+
 void setup()
 {
   delay(1000);
   Serial.begin(115200);
+
+  esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
+  if (wakeup_reason == ESP_SLEEP_WAKEUP_EXT0){
+    
+  }
 
   // GPS
   initGNSS(GPSSerial, GPSRX, GPSTX);
