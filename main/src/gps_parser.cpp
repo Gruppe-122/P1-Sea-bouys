@@ -81,44 +81,67 @@ void syncTimeFromGPS(const char *rawTime)
 
 void readGGAData(char *inputData, nmeaData *data) {
   gpsLog.logln("decode gps data (GGA DATA)", "INFO", true);
+  Serial.println(inputData);
   char *buff;
   //GGA protocol header
   //strtok replaces the separator character with a string terminator
   //#THIS MODIFIES THE DATA DESTRUCTIVELY#
   buff = strtok(inputData, ",*");
+
   //UTC time hhmmss.sss
   buff = strtok(NULL, ",");
-  if (buff != NULL) {
-    strncpy(data->utc, buff, sizeof(data->utc) - 1);
-    data->utc[sizeof(data->utc) - 1] = '\0';
-  }
+  //if (buff != NULL) {
+  //  strncpy(data->utc, buff, sizeof(data->utc) - 1);
+  //  data->utc[sizeof(data->utc) - 1] = '\0';
+  //}
+  gpsLog.logln("hhmmss.sss", "DEBUG", true);
+
   //Latitude ddmm.mmmm
   buff = strtok(NULL, ",");
   data->lat = USE_DECIMAL_DEGREES ? convertTodegrees(atof(buff)) : atof(buff);
+  gpsLog.logln("ddmm.mmmm", "DEBUG", true);
+
   //N/S indication N=North, S=South
   buff = strtok(NULL, ",");
   data->latDir = *buff;
+  gpsLog.logln("N=North, S=South", "DEBUG", true);
+
   //Longitude dddmm.mmmm
   buff = strtok(NULL, ",");
   data->lon = USE_DECIMAL_DEGREES ? convertTodegrees(atof(buff)) : atof(buff);
+  gpsLog.logln("dddmm.mmmm", "DEBUG", true);
+
   //E/W indication E=East, W=West
   buff = strtok(NULL, ",");
   data->lonDir = *buff;
+  gpsLog.logln("indication E=East, W=West", "DEBUG", true);
+
   //Positioning 0: not positioned 1: valid Position
   buff = strtok(NULL, ",");
   data->vld = (*buff >= '1') ? 1 : 0;
+  gpsLog.logln("valid Position", "DEBUG", true);
+
   //Number of satellites Range 0 to 12 (lies)
   buff = strtok(NULL, ",");
   data->nrSat = atoi(buff);
+  gpsLog.logln("Number of satellites Range 0 to 12 (lies)", "DEBUG", true);
+
   //HDOP Horizontal accuracy
   buff = strtok(NULL, ",");
   data->horPosAck = atof(buff);
+  gpsLog.logln("HDOP Horizontal accuracy", "DEBUG", true);
+
   //Mean Sea Level Earth is -2.2 M
   buff = strtok(NULL, ",");
+  gpsLog.logln("decode gps data (GGA DATA)", "DEBUG", true);
+
   //Differential time When there is no DGPS, invalid
   buff = strtok(NULL, ",");
+  gpsLog.logln("Differential time When there is no DGPS, invalid", "DEBUG", true);
+
   //Differential ID
   buff = strtok(NULL, ",");
+  gpsLog.logln("Differential ID", "DEBUG", true);
 }
 
 int charToHex(char in) {
