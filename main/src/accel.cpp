@@ -46,7 +46,7 @@ int accelSetup()
     writeRegister(ADXL345_ADDRESS, 0x31, 0x01); // range 4G
 
     accelLog.logln("sets (43 for 2.69G - 0x18 for 1.5G) treshhold", "INFO", true);
-    writeRegister(ADXL345_ADDRESS, 0x24, 0x10); //(0x18 for 1.5G) treshhold
+    writeRegister(ADXL345_ADDRESS, 0x24, 0x18); //(0x18 for 1.5G) treshhold
 
     accelLog.logln("aktivere måling på hhv. x, y og z", "INFO", true);
     writeRegister(ADXL345_ADDRESS, 0x27, 0xF0); // aktivere måling på hhv. x, y og z

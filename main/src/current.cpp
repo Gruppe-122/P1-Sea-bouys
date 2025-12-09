@@ -74,15 +74,9 @@ float CurrentSensor::get_voltage_mV()
 
 float CurrentSensor::measure_current_A()
 {
-<<<<<<< HEAD
   currentLog.logln("measure current A", "INFO", true);
   uint32_t voltage_mV = get_voltage_mV();
   float amps = (voltage_mV - _dcOffset_mV) / _mod_mV_per_A;
-=======
-  float voltage_mV = get_voltage_mV();
-  // typecast to float to avoid integer division issues
-  float amps = (voltage_mV - (float)_dcOffset_mV) / _mod_mV_per_A;
->>>>>>> origin
   return amps;
 }
 
