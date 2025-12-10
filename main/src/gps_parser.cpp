@@ -177,8 +177,10 @@ int verifyChkSum(char *inputData) {
   gpsLog.logln(chkSum, "DEBUG", false);
 
   if (hash == chkSum) {
+    gpsLog.logln("chksum good", "INFO", true);
     return 1;
   }
+  gpsLog.logln("chksum bad", "INFO", true);
   return 0;
 }
 
