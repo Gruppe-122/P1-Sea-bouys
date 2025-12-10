@@ -9,26 +9,29 @@
 #include "time.h"
 
 extern logger gpsLog;
+
 typedef struct {
   bool vld;
   char latDir, lonDir;
   int nrSat;
   double lat, lon, horPosAck;
-  char utc[10];
+  char utc[11];
 } nmeaData;
 
-/**
- * @brief tells gps module to sleep for "sleepTime" seconds.
- * @param sleepTime how long in seconds the gps will sleep.
- * @param serPort serial port gps module is conected to.
- */
-void sleepGNSS(int sleepTime, HardwareSerial &serPort);
+// /**
+//  * @brief tells gps module to sleep for "sleepTime" seconds.
+//  * @param sleepTime how long in seconds the gps will sleep.
+//  * @param serPort serial port gps module is conected to.
+//  */
+// void sleepGNSS(int sleepTime, HardwareSerial &serPort);
+
 /**
  * @brief reads GNSS data from gps module.
  * @param data a struct of type "nmeaData", passed as &varName, data will be stored in the struct.
  * @param serPort serial port gps module is conected to.
  */
 void readGNSS(nmeaData *data, HardwareSerial &serPort);
+
 /**
  * @brief initilises gps module on passed serial port.
  * @param serPort serial port gps module is conected to.
@@ -38,7 +41,7 @@ void readGNSS(nmeaData *data, HardwareSerial &serPort);
 void initGNSS(HardwareSerial &serPort, int RX_pin, int TX_pin);
 
 /**
- * @brief Prints to Serial the nmeaData data
+ * @brief Prints to Log the nmeaData data
  * @param GNSSdata refrence to nemaData struct
  */
 void PrintGPSData(nmeaData &GNSSData);
