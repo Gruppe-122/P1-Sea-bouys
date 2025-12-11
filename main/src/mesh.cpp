@@ -42,11 +42,11 @@ void meshalternativ::start_radio()
     int listenState = radio->startReceive();
     if (listenState == RADIOLIB_ERR_NONE)
     {
-        Serial.println(F("LoRa listening started successfully!"));
+        Serial.println("LoRa listening started successfully!");
     }
     else
     {
-        Serial.print(F("Failed to start listening, code "));
+        Serial.print("Failed to start listening, code ");
         Serial.println(listenState);
     }
 
@@ -61,17 +61,18 @@ void meshalternativ::send_data(const BuoyData& data)
         return;
     }
 
+    // Make sure we don't flag our own transmission
     bool flagSaved = receivedFlag;
     int state = radio->transmit((uint8_t*)&data, sizeof(BuoyData));
     receivedFlag = flagSaved;
 
     if (state == RADIOLIB_ERR_NONE)
     {
-        Serial.println(F("Struct sent successfully!"));
+        Serial.println("Struct sent successfully!");
     }
     else
     {
-        Serial.print(F("Struct transmission failed, code "));
+        Serial.print("Struct transmission failed, code ");
         Serial.println(state);
     }
 
@@ -93,15 +94,17 @@ bool meshalternativ::receive_data(BuoyData& data)
         
         if (state == RADIOLIB_ERR_NONE)
         {
-            Serial.println(F("Struct received successfully!"));
+            Serial.println("Struct received successfully!");
             
-            Serial.print(F("RSSI: "));
+            // Received Signal Strength Indicator
+            Serial.print("RSSI: ");
             Serial.print(radio->getRSSI());
-            Serial.println(F(" dBm"));
+            Serial.println(" dBm");
             
-            Serial.print(F("SNR: "));
+            // Signal to noise ratio
+            Serial.print("SNR: ");
             Serial.print(radio->getSNR());
-            Serial.println(F(" dB"));
+            Serial.println(" dB");
             
             radio->startReceive();
             
@@ -109,7 +112,7 @@ bool meshalternativ::receive_data(BuoyData& data)
         }
         else
         {
-            Serial.print(F("Struct read failed, code "));
+            Serial.print("Struct read failed, code ");
             Serial.println(state);
             
             radio->startReceive();
