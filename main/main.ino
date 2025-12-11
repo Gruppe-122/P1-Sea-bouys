@@ -36,6 +36,7 @@
 #define LATITUDE 57.055533
 #define LONGITUDE 9.925497
 #define METERS_PER_DEGREE_LAT 111120.0
+#define uS_TO_S_FACTOR 1000000ULL
 
 #define CURRENT_POWER_PIN 0
 #define VOLTAGE_POWER_PIN 2
@@ -59,18 +60,11 @@ logger meshLog = logger("MESH", "INFO");
 logger gpsLog = logger("GPS", "INFO");
 logger mainLog = logger("MAIN", "INFO");
 
-unsigned long lastRun = 0;
-const unsigned long interval = 10UL * 1000UL; // 1 minut
 void syncTime(){
   mainLog.logln("started sync", "INFO", true);
-  unsigned long now = millis();
-  if (now - lastRun >= interval)
-  {
-    lastRun = now;
-    readGNSS(&GNSSData, GPSSerial);
-    syncTimeFromGPS(GNSSData.utc);
-    mainLog.logln("time sync", "INFO", true);
-  }
+  readGNSS(&GNSSData, GPSSerial);
+  syncTimeFromGPS(GNSSData.utc);
+  mainLog.logln("time sync", "INFO", true);
 }
 
 void logBuoyData(const BuoyData &data, const char *level)
@@ -134,6 +128,13 @@ void collectSensorData()
   digitalWrite(VOLTAGE_POWER_PIN, LOW);
 }
 
+void sleep(unsigned long sec = 1800) {
+  esp_sleep_enable_ext0_wakeup(GPIO_NUM_5, 1);
+  esp_sleep_enable_timer_wakeup((uint64_t)sec * uS_TO_S_FACTOR);
+  Serial.flush();
+  delay(50);
+  esp_deep_sleep_start();
+}
 
 // saves data on RTC RAM so it is remembered from each sleep cycle
 RTC_DATA_ATTR uint8_t accelerometerHit;
@@ -189,15 +190,17 @@ void loop() {
     // If it was hit during sleep, it's gonna be 1
     // If it was hit two cycles ago, it'll be 2, 3 will be 3, and then it resets
     // Gives a general idea of how long it was hit last, in case a message fails to send
+    collectSensorData();
+    logBuoyData(ownData, "TEST");
 
-    if (accelerometer() != 0) {
+    if (ownData.accelerometer_jerk != 0) {
       accelerometerHit = 1;
     }
     if (accelerometerHit > 0 && accelerometerHit <= 3) {
       ownData.accelerometer_jerk = accelerometerHit;
       accelerometerHit++;
     }
-    else if (accelerometerHit == 4) {
+    else if (accelerometerHit > 4) {
       ownData.accelerometer_jerk = 0;
       accelerometerHit = 0;
     }
@@ -251,8 +254,6 @@ void loop() {
     receivedIDs++;
     initialized = true;
     lastSentMessage = millis();
-    collectSensorData();
-    logBuoyData(ownData, "TEST");
   }
 
   
