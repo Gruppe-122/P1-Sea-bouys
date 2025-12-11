@@ -13,19 +13,20 @@
 #include "src/gps_parser.h"
 #include "src/volt.h"
 #include "src/mesh.h"
+#include "src/log.h"
 
-//definitions
-#define R1 1000.0        //Resistor value in voltagedivider circuit
-#define R2 1000.0        //Resistor value in voltagedivider circuit
-#define REF_VOLTAGE 1100 //ESP32 reference voltage for calibration.
-#define VOLT_PIN 7
+// definitions
+#define R1 1000.0        // Resistor value in voltagedivider circuit
+#define R2 1000.0        // Resistor value in voltagedivider circuit
+#define REF_VOLTAGE 1100 // ESP32 reference voltage for calibration.
+#define VOLT_PIN 4
 #define ADC_RESOLUTION 12
 
-#define CURRENTSENSOR_PIN 6
-#define DC_OFFSET 2500   //voltage offset from currentsensor module
+#define CURRENTSENSOR_PIN 3
+#define DC_OFFSET 2500 // voltage offset from currentsensor module
 
-#define ADC_N_SAMPLES 20          //amount of ADC signals to base voltage reading on
-#define ADC_SAMPLING_FREQUENCY 20 //time between taking ADC value ms
+#define ADC_N_SAMPLES 20          // amount of ADC signals to base voltage reading on
+#define ADC_SAMPLING_FREQUENCY 20 // time between taking ADC value ms
 
 #define GPSRX 19
 #define GPSTX 20
@@ -36,16 +37,102 @@
 #define LONGITUDE 9.925497
 #define METERS_PER_DEGREE_LAT 111120.0
 
-//Variables
+#define CURRENT_POWER_PIN 0
+#define VOLTAGE_POWER_PIN 2
+
+// Structs
 nmeaData GNSSData;
-meshalternativ buoy;
 BuoyData ownData;
 BuoyData receivedData;
 BuoyData withholdingReceivedData;
 
-//Objects
-Volt battery(VOLT_PIN, R1, R2, ADC_11db, ADC_RESOLUTION);
+// Objects
+Volt battery(VOLT_PIN, R1, R2);
 CurrentSensor current(CURRENTSENSOR_PIN, DC_OFFSET);
+meshalternativ buoy;
+
+// logs
+logger accelLog = logger("ACCELOMETER", "INFO");
+logger currentLog = logger("CURRENT", "INFO");
+logger voltLog = logger("VOLT", "INFO");
+logger meshLog = logger("MESH", "INFO");
+logger gpsLog = logger("GPS", "INFO");
+logger mainLog = logger("MAIN", "INFO");
+
+unsigned long lastRun = 0;
+const unsigned long interval = 10UL * 1000UL; // 1 minut
+void syncTime(){
+  mainLog.logln("started sync", "INFO", true);
+  unsigned long now = millis();
+  if (now - lastRun >= interval)
+  {
+    lastRun = now;
+    readGNSS(&GNSSData, GPSSerial);
+    syncTimeFromGPS(GNSSData.utc);
+    mainLog.logln("time sync", "INFO", true);
+  }
+}
+
+void logBuoyData(const BuoyData &data, const char *level)
+{
+  mainLog.log("buoy_number: ", level, true);
+  mainLog.logln(data.buoy_number, level, false);
+
+  mainLog.log("sent_from: ", level, true);
+  mainLog.logln(data.sent_from, level, false);
+
+  mainLog.log("battery_voltage: ", level, true);
+  mainLog.logln(data.battery_voltage, level, false);
+
+  mainLog.log("gps_latitude: ", level, true);
+  mainLog.logln(data.gps_latitude, level, false);
+
+  mainLog.log("gps_longitude: ", level, true);
+  mainLog.logln(data.gps_longitude, level, false);
+
+  mainLog.log("accelerometer_jerk: ", level, true);
+  mainLog.logln(data.accelerometer_jerk, level, false);
+
+  mainLog.log("lamp_current: ", level, true);
+  mainLog.logln(data.lamp_current, level, false);
+}
+
+void collectSensorData()
+{
+  mainLog.logln("collect sensors data", "INFO", true);
+
+  // pin power setup
+  digitalWrite(CURRENT_POWER_PIN, HIGH);
+  digitalWrite(VOLTAGE_POWER_PIN, HIGH);
+
+  // wait for hardware to be ready
+  delay(100);
+
+  // Accelometer
+  ownData.accelerometer_jerk = accelerometer();
+
+  // Voltage
+  int avg_ADC = 0;
+  for (int i = 0; i < 100; i++)
+  {
+    avg_ADC += battery.moving_avg_ADC();
+  }
+  ownData.battery_voltage = battery.ADC_to_mV(avg_ADC);
+
+  // GPS
+  readGNSS(&GNSSData, GPSSerial); //will time out after 6 seconds
+  //TODO: check if valid
+  ownData.gps_latitude = GNSSData.lat;
+  ownData.gps_longitude = GNSSData.lon;
+
+  // UTC Missing
+  bool isLampCurrent = current.measure_current_mA() > 0 ? true : false;
+  ownData.lamp_current = isLampCurrent;
+
+  // pin power clean up
+  digitalWrite(CURRENT_POWER_PIN, LOW);
+  digitalWrite(VOLTAGE_POWER_PIN, LOW);
+}
 
 
 // saves data on RTC RAM so it is remembered from each sleep cycle
@@ -58,12 +145,30 @@ void setup()
 {
   delay(1000);
   Serial.begin(115200);
-  buoy.start_radio();
+
+  // GPS
   initGNSS(GPSSerial, GPSRX, GPSTX);
-  battery.set_sampling(ADC_N_SAMPLES, ADC_SAMPLING_FREQUENCY);
-  current.set_sampling(ADC_N_SAMPLES, ADC_SAMPLING_FREQUENCY);
+  syncTime();
+
+  // voltage measurements
+  pinMode(VOLT_PIN, INPUT);
+  pinMode(VOLTAGE_POWER_PIN, OUTPUT);
+  digitalWrite(VOLTAGE_POWER_PIN, LOW);
+
+  // mesh
+  buoy.start_radio();
   ownData.buoy_number = BUOY_ID;
+
+  // Current sensor
+  pinMode(CURRENTSENSOR_PIN, INPUT);
+  current.set_sampling(ADC_N_SAMPLES, ADC_SAMPLING_FREQUENCY);
   current.begin();
+  pinMode(CURRENT_POWER_PIN, OUTPUT);
+  digitalWrite(CURRENT_POWER_PIN, LOW);
+
+  // Accelometer
+  accelSetup();
+  calibrate();
 }
 
 int idCheck[BUOY_AMOUNT];
@@ -75,7 +180,6 @@ bool initialized = false;
 bool alreadySentID = false;
 bool alreadySentID2 = false;
 
-
 void loop() {
     // Wake up
     // initialized = 0 somewhere in wake up
@@ -85,6 +189,7 @@ void loop() {
     // If it was hit during sleep, it's gonna be 1
     // If it was hit two cycles ago, it'll be 2, 3 will be 3, and then it resets
     // Gives a general idea of how long it was hit last, in case a message fails to send
+
     if (accelerometer() != 0) {
       accelerometerHit = 1;
     }
@@ -146,6 +251,8 @@ void loop() {
     receivedIDs++;
     initialized = true;
     lastSentMessage = millis();
+    collectSensorData();
+    logBuoyData(ownData, "TEST");
   }
 
   

@@ -16,8 +16,8 @@ void meshalternativ::start_radio()
 {
     mod = new Module(LORA_CS, LORA_DIO1, LORA_RST, LORA_BUSY);
     radio = new SX1262(mod);
-    
-    Serial.println("Module and radio created");
+
+    meshLog.logln("Module and radio created", "INFO", true);
     
     int state = radio->begin(frequency);
     
@@ -27,7 +27,7 @@ void meshalternativ::start_radio()
         return;
     }
 
-    Serial.println("Radio initialized successfully!");
+    meshLog.logln("Radio initialized successfully!", "INFO", true);
     
     radio->setDio2AsRfSwitch(true);
     radio->setBandwidth(bandwidth);
@@ -42,12 +42,12 @@ void meshalternativ::start_radio()
     int listenState = radio->startReceive();
     if (listenState == RADIOLIB_ERR_NONE)
     {
-        Serial.println("LoRa listening started successfully!");
+        meshLog.logln("LoRa listening started successfully!", "INFO", true);
     }
     else
     {
-        Serial.print("Failed to start listening, code ");
-        Serial.println(listenState);
+        meshLog.log("Failed to start listening, code ", "INFO", true);
+        meshLog.logln(listenState, "INFO", false);
     }
 
     initialized = true;
@@ -57,23 +57,22 @@ void meshalternativ::send_data(const BuoyData& data)
 {
     if (!initialized)
     {
-        Serial.println("Radio not initialized!");
+        meshLog.logln("Radio not initialized!", "INFO", true);
         return;
     }
 
-    // Make sure we don't flag our own transmission
     bool flagSaved = receivedFlag;
     int state = radio->transmit((uint8_t*)&data, sizeof(BuoyData));
     receivedFlag = flagSaved;
-
+    
     if (state == RADIOLIB_ERR_NONE)
     {
-        Serial.println("Struct sent successfully!");
+        meshLog.logln("Struct sent successfully!", "INFO", true);
     }
     else
     {
-        Serial.print("Struct transmission failed, code ");
-        Serial.println(state);
+        meshLog.log("Struct transmission failed, code ", "INFO", true);
+        meshLog.logln(state, "INFO", false);
     }
 
     radio->startReceive();
@@ -94,17 +93,16 @@ bool meshalternativ::receive_data(BuoyData& data)
         
         if (state == RADIOLIB_ERR_NONE)
         {
-            Serial.println("Struct received successfully!");
-            
+            meshLog.logln("Struct received successfully!", "INFO", true);
             // Received Signal Strength Indicator
-            Serial.print("RSSI: ");
-            Serial.print(radio->getRSSI());
-            Serial.println(" dBm");
-            
+            meshLog.log("RSSI: ", "INFO", true);
+            meshLog.log(radio->getRSSI(), "INFO", false);
+            meshLog.logln(" dBm", "INFO", false);
+
             // Signal to noise ratio
-            Serial.print("SNR: ");
-            Serial.print(radio->getSNR());
-            Serial.println(" dB");
+            meshLog.log("SNR: ", "INFO", true);
+            meshLog.log(radio->getSNR(), "INFO", false);
+            meshLog.logln(" dB", "INFO", false);
             
             radio->startReceive();
             
@@ -112,11 +110,11 @@ bool meshalternativ::receive_data(BuoyData& data)
         }
         else
         {
-            Serial.print("Struct read failed, code ");
-            Serial.println(state);
+            meshLog.log("Struct read failed, code ", "INFO", true);
+            meshLog.logln(state, "INFO", false);
             
             radio->startReceive();
-            
+
             return false;
         }
     }

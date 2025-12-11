@@ -5,6 +5,9 @@
 #include <RadioLib.h>
 #include <SPI.h>
 #include <vector>
+#include "log.h"
+
+extern logger meshLog;
 
 // Add the BuoyData struct definition
 struct BuoyData
