@@ -83,42 +83,52 @@ void readGGAData(char *inputData, nmeaData *data) {
   gpsLog.logln("decode gps data (GGA DATA)", "INFO", true);
   char *buff;
   //GGA protocol header
-  //strtok replaces the separator character with a string terminator
+  //strsep replaces the separator character with a string terminator
   //#THIS MODIFIES THE DATA DESTRUCTIVELY#
-  buff = strtok(inputData, ",*");
+  buff = strsep(&inputData, ",*");
+  if (buff == nullptr) return;
   //UTC time hhmmss.sss
-  buff = strtok(NULL, ",");
-  if (buff != NULL) {
-    strncpy(data->utc, buff, sizeof(data->utc) - 1);
-    data->utc[sizeof(data->utc) - 1] = '\0';
-  }
+  buff = strsep(&inputData, ",*");
+  if (buff == nullptr) return;
+  strncpy(data->utc, buff, sizeof(data->utc) - 1);
+  data->utc[sizeof(data->utc) - 1] = '\0';
   //Latitude ddmm.mmmm
-  buff = strtok(NULL, ",");
+  buff = strsep(&inputData, ",*");
+  if (buff == nullptr) return;
   data->lat = USE_DECIMAL_DEGREES ? convertTodegrees(atof(buff)) : atof(buff);
   //N/S indication N=North, S=South
-  buff = strtok(NULL, ",");
+  buff = strsep(&inputData, ",*");
+  if (buff == nullptr) return;
   data->latDir = *buff;
   //Longitude dddmm.mmmm
-  buff = strtok(NULL, ",");
+  buff = strsep(&inputData, ",*");
+  if (buff == nullptr) return;
   data->lon = USE_DECIMAL_DEGREES ? convertTodegrees(atof(buff)) : atof(buff);
   //E/W indication E=East, W=West
-  buff = strtok(NULL, ",");
+  buff = strsep(&inputData, ",*");
+  if (buff == nullptr) return;
   data->lonDir = *buff;
   //Positioning 0: not positioned 1: valid Position
-  buff = strtok(NULL, ",");
+  buff = strsep(&inputData, ",*");
+  if (buff == nullptr) return;
   data->vld = (*buff >= '1') ? 1 : 0;
   //Number of satellites Range 0 to 12 (lies)
-  buff = strtok(NULL, ",");
+  buff = strsep(&inputData, ",*");
+  if (buff == nullptr) return;
   data->nrSat = atoi(buff);
   //HDOP Horizontal accuracy
-  buff = strtok(NULL, ",");
+  buff = strsep(&inputData, ",*");
+  if (buff == nullptr) return;
   data->horPosAck = atof(buff);
   //Mean Sea Level Earth is -2.2 M
-  buff = strtok(NULL, ",");
+  buff = strsep(&inputData, ",*");
+  if (buff == nullptr) return;
   //Differential time When there is no DGPS, invalid
-  buff = strtok(NULL, ",");
+  buff = strsep(&inputData, ",*");
+  if (buff == nullptr) return;
   //Differential ID
-  buff = strtok(NULL, ",");
+  buff = strsep(&inputData, ",*");
+  if (buff == nullptr) return;
 }
 
 int charToHex(char in) {
@@ -128,7 +138,6 @@ int charToHex(char in) {
   if (in <= 'A' && in >= 'F') {
     return (in - 'A' + 10); //0x0A = 10, "A" - 'A' + 10 = 0x0A
   }
-
   return -1; // invalid hex char
 }
 
@@ -174,7 +183,7 @@ int verifyChkSum(char *inputData) {
 }
 
 int parseGNSSData(char *inputData, nmeaData *data) {
-  gpsLog.logln("varify data", "INFO", true);
+  gpsLog.logln("parse data", "INFO", true);
   if (verifyChkSum(inputData) == 1) {
     readGGAData(inputData, data); //shreds the string it is passed (if you need it afterwards give it a copy)
     if (data->vld == 1) {
@@ -184,18 +193,20 @@ int parseGNSSData(char *inputData, nmeaData *data) {
   return 0;
 }
 
-void sleepGNSS(int sleepTime, HardwareSerial &serPort) {
-  gpsLog.logln("send sleep command to GPS", "INFO", true);
-  char cmd[24], hex[4]; //checksum is 2 chars of hex
-  int chkSum;
-  snprintf(cmd, 24, "PCAS12,%d*", sleepTime);
-  chkSum = calcChkSum(cmd);
-  snprintf(hex, 4, "%X", chkSum);
-  serPort.print("$"); //sends sleep command
-  serPort.print(cmd);
-  serPort.print(hex);
-  serPort.print("\r\n");
-}
+// wont work
+
+// void sleepGNSS(int sleepTime, HardwareSerial &serPort) {
+//   gpsLog.logln("send sleep command to GPS", "INFO", true);
+//   char cmd[24], hex[4]; //checksum is 2 chars of hex
+//   int chkSum;
+//   snprintf(cmd, 24, "PCAS12,%d*", sleepTime);
+//   chkSum = calcChkSum(cmd);
+//   snprintf(hex, 4, "%X", chkSum);
+//   serPort.print("$"); //sends sleep command
+//   serPort.print(cmd);
+//   serPort.print(hex);
+//   serPort.print("\r\n");
+// }
 
 void readGNSS(nmeaData *data, HardwareSerial &serPort) {
   gpsLog.logln("reads GPS nema data", "INFO", true);
@@ -205,7 +216,7 @@ void readGNSS(nmeaData *data, HardwareSerial &serPort) {
   const char GNGGA[] = "GNGGA";
   data->vld = 0;
   uint32_t startMs = millis();
-  const uint32_t timeoutMs = 6000; //6s timeout
+  const uint32_t timeoutMs = 30000; //30s timeout
   while (dataReceved == 0) {
     if ((millis() - startMs) > timeoutMs) {
       return;
@@ -217,7 +228,7 @@ void readGNSS(nmeaData *data, HardwareSerial &serPort) {
         inpos = 0;
       }
       if (inByte == '\n') { //end of message
-        inbuf[inpos++] = 0;
+        inbuf[inpos++] = '\0';
         gpsLog.logln(inbuf, "DEBUG", true);
 
         bool isGGA = true;

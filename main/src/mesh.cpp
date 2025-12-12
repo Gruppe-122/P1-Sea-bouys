@@ -61,7 +61,9 @@ void meshalternativ::send_data(const BuoyData& data)
         return;
     }
 
+    bool flagSaved = receivedFlag;
     int state = radio->transmit((uint8_t*)&data, sizeof(BuoyData));
+    receivedFlag = flagSaved;
     
     if (state == RADIOLIB_ERR_NONE)
     {
@@ -92,11 +94,12 @@ bool meshalternativ::receive_data(BuoyData& data)
         if (state == RADIOLIB_ERR_NONE)
         {
             meshLog.logln("Struct received successfully!", "INFO", true);
-
+            // Received Signal Strength Indicator
             meshLog.log("RSSI: ", "INFO", true);
             meshLog.log(radio->getRSSI(), "INFO", false);
             meshLog.logln(" dBm", "INFO", false);
 
+            // Signal to noise ratio
             meshLog.log("SNR: ", "INFO", true);
             meshLog.log(radio->getSNR(), "INFO", false);
             meshLog.logln(" dB", "INFO", false);
