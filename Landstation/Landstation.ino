@@ -11,7 +11,7 @@
 // Definitions
 #define BUOY_AMOUNT 5
 #define AMOUNT_BEFORE_ALARM 3
-#define METERS_PER_DEGREE_LAT 111120.0
+#define METERS_PER_DEGREE_LAT 111111.0
 #define DIST_THRESH 30.0
 // This is the ID on the buoy we're sending to:
 #define BUOY_ID_TEST 3 
