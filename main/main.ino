@@ -166,12 +166,16 @@ void setup()
   initGNSS(GPSSerial, GPSRX, GPSTX);
   syncTime();
   // Get time and date
+  // We put our time into an int
   time_t now = time(NULL);
-  struct tm *local_time = localtime(&now);
+  // We now put the adress of this integer into a command to make it into a time struct. localtime requires a pointer
   int current_minute = local_time->tm_min;
   int current_second = local_time->tm_sec;
+  // How many minutes have passed in the interval
   int remainder = current_minute % INTERVAL_MINUTES;
+  // Change to how many minutes are left in the interval
   int minutes_to_next = INTERVAL_MINUTES - remainder;
+  // Make amount of time left into milliseconds
   milliseconds_until_interval = ((minutes_to_next * 60) - current_second) * 1000;
   sendDataTimer = millis();
 
@@ -232,20 +236,20 @@ void loop() {
     uint8_t gpsTries = 0;
     while (gpsTries < 3) {
 
-        // TJEK GPS HER
-        // readGNSS(&GNSSData, GPSSerial);
-        //   ownData.gps_latitude = 0.0;
-        //   ownData.gps_longitude = 0.0;
-        // PrintGPSData(GNSSData);
+      // TJEK GPS HER
+      // readGNSS(&GNSSData, GPSSerial);
+      //   ownData.gps_latitude = 0.0;
+      //   ownData.gps_longitude = 0.0;
+      // PrintGPSData(GNSSData);
 
-        // Original position to GPS position
-        double lat_diff_meters = (ownData.gps_latitude - LATITUDE) * METERS_PER_DEGREE_LAT;
+      // Original position to GPS position
+      double lat_diff_meters = (ownData.gps_latitude - LATITUDE) * METERS_PER_DEGREE_LAT;
 
-        // Longitude degree per meter changes from how far up you are, use original location to get a guesstimate
-        double lon_diff_meters = (ownData.gps_longitude - LONGITUDE) * metersPerDegreeLon(LONGITUDE);
+      // Longitude degree per meter changes from how far up you are, use original location to get a guesstimate
+      double lon_diff_meters = (ownData.gps_longitude - LONGITUDE) * metersPerDegreeLon(LONGITUDE);
 
-        // Pythagoras to figure out if it's far away
-        double distance = (lon_diff_meters * lon_diff_meters) + (lat_diff_meters * lat_diff_meters);
+      // Pythagoras to figure out if it's far away
+      double distance = (lon_diff_meters * lon_diff_meters) + (lat_diff_meters * lat_diff_meters);
 
 
         // If it's over 30 meters away (30*30 = 900) - An extra check in case the buoy doesn't know it's out of its position
@@ -259,14 +263,14 @@ void loop() {
   
     // Start ALARM MODE if GPS was out of range 3 times
     if (gpsTries >= 3) {
-        ownData.alarm = true;
+      ownData.alarm = true;
     }
     initialized = true;
     lastSentMessage = millis();
   }
 
   if (milliseconds_until_interval + (BUOY_ID * 1000) < millis() - sendDataTimer && !sendOwnMessage) {
-    
+
     buoy.send_data(ownData);
     idCheck[0] = BUOY_ID;
     receivedIDs++;
@@ -276,34 +280,29 @@ void loop() {
 
   
   // Start listening loop!
-    if (buoy.receive_data(receivedData)) {
+  if (buoy.receive_data(receivedData)) {
       alreadySentID = false;
 
 
-      // Amount of IDs received, check if already in array or if it hasn't received anything new
-      for(int i=0; i<receivedIDs; i++){ 
-        if(receivedData.buoy_number == idCheck[i]){
-          alreadySentID = true;
-        }
+    // Amount of IDs received, check if already in array or if it hasn't received anything new
+    for(int i=0; i<receivedIDs; i++){ 
+      if(receivedData.buoy_number == idCheck[i]){
+        alreadySentID = true;
       }
-      sendingOrderForBuoys();
     }
-    // Check if witholding ID sent from 2 buoys away is already sent through a closer buoy in the meantime
-    alreadySentID2 = false;
-    isWitheldDataAlreadySent();
+    sendingOrderForBuoys();
+  }
 
-  
-
-  // ALARM MODE! BUOY IS NOT IN LOCATION
-  // NOT allowed to go beyond Duty Cycle of 1% transmission time of an hour, that is 36 seconds of total transmission time.
-  // Remember, all the other buoys repeating the message will also be repeating higher ID buoy messages.
-
-
+  // Check if witholding ID sent from 2 buoys away is already sent through a closer buoy in the meantime
+  alreadySentID2 = false;
+  isWitheldDataAlreadySent();
 
   // After a certain amount of time, check how long it's been awake
   // After 30 seconds of being awake, sleep
   if (10000 < millis() - lastSentMessage) {
+    // We put our time into an int
     time_t now = time(NULL);
+    // We now put the adress of this integer into a command to make it into a time struct. localtime requires a pointer
     struct tm *local_time = localtime(&now);
     int current_minute = local_time->tm_min;
     int current_second = local_time->tm_sec;
