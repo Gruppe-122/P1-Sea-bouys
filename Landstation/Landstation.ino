@@ -219,13 +219,8 @@ void loop() {
 
   buoy.receive_data(receivedData);
   if (receivedData.buoy_number > 0) {
-    int idAlreadySeen = 0;
     // Check here if you have seen the buoy before
-    if (idCheck[receivedData.buoy_number - 1] == receivedData.buoy_number) {
-      idAlreadySeen = 1;
-    }      
-
-    if (idAlreadySeen == 0) {
+    if (idCheck[receivedData.buoy_number - 1] != receivedData.buoy_number) {
       idCheck[receivedData.buoy_number - 1] = receivedData.buoy_number;
 
       // Needs to make sure that buoy number 1 is in position 0 in the array
