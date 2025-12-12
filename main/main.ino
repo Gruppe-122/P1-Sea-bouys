@@ -14,6 +14,7 @@
 #include "src/volt.h"
 #include "src/mesh.h"
 #include "src/log.h"
+#include "time.h"
 
 // definitions
 #define R1 1000.0        // Resistor value in voltagedivider circuit
@@ -37,6 +38,8 @@
 #define LONGITUDE 9.925497
 #define METERS_PER_DEGREE_LAT 111120.0
 #define uS_TO_S_FACTOR 1000000ULL
+#define INTERVAL_MINUTES 5
+#define WAKEUP_MINUTES_BEFORE 2
 
 #define CURRENT_POWER_PIN 0
 #define VOLTAGE_POWER_PIN 2
@@ -128,7 +131,7 @@ void collectSensorData()
   digitalWrite(VOLTAGE_POWER_PIN, LOW);
 }
 
-void sleep(unsigned long sec = 1800) {
+void sleepTime(unsigned long sec) {
   esp_sleep_enable_ext0_wakeup(GPIO_NUM_5, 1);
   esp_sleep_enable_timer_wakeup((uint64_t)sec * uS_TO_S_FACTOR);
   Serial.flush();
@@ -136,20 +139,42 @@ void sleep(unsigned long sec = 1800) {
   esp_deep_sleep_start();
 }
 
-// saves data on RTC RAM so it is remembered from each sleep cycle
-RTC_DATA_ATTR uint8_t accelerometerHit;
-
 void isWitheldDataAlreadySent();
 void sendingOrderForBuoys();
 
+// saves data on RTC RAM so it is remembered from each sleep cycle
+RTC_DATA_ATTR uint8_t accelerometerHit;
+
+
+int idCheck[BUOY_AMOUNT];
+int receivedIDs = 0;
+unsigned int buoySendDelay = 0;
+unsigned long lastSentMessage = 0;
+unsigned long sendDataTimer;
+unsigned long milliseconds_until_interval;
+bool sendDelay = false;
+bool initialized = false;
+bool alreadySentID = false;
+bool alreadySentID2 = false;
+bool sendOwnMessage = false;
+
 void setup()
 {
-  delay(1000);
   Serial.begin(115200);
 
   // GPS
   initGNSS(GPSSerial, GPSRX, GPSTX);
   syncTime();
+  // Get time and date
+  time_t now = time(NULL);
+  struct tm *local_time = localtime(&now);
+  int current_minute = local_time->tm_min;
+  int current_second = local_time->tm_sec;
+  int remainder = current_minute % INTERVAL_MINUTES;
+  int minutes_to_next = INTERVAL_MINUTES - remainder;
+  milliseconds_until_interval = ((minutes_to_next * 60) - current_second) * 1000;
+  sendDataTimer = millis();
+
 
   // voltage measurements
   pinMode(VOLT_PIN, INPUT);
@@ -171,15 +196,6 @@ void setup()
   accelSetup();
   calibrate();
 }
-
-int idCheck[BUOY_AMOUNT];
-int receivedIDs = 0;
-unsigned int buoySendDelay = 0;
-unsigned long lastSentMessage = 0;
-bool sendDelay = false;
-bool initialized = false;
-bool alreadySentID = false;
-bool alreadySentID2 = false;
 
 void loop() {
     // Wake up
@@ -245,20 +261,21 @@ void loop() {
     if (gpsTries >= 3) {
         ownData.alarm = true;
     }
-    // Make a delay here based on TIME until when you want to send (Specific time of day + ID)
-    delay(BUOY_ID*1000);
-
-    buoy.send_data(ownData);
-    // Adding own buoy to the array of sent bouys
-    idCheck[0] = BUOY_ID;
-    receivedIDs++;
     initialized = true;
     lastSentMessage = millis();
   }
 
+  if (milliseconds_until_interval + (BUOY_ID * 1000) < millis() - sendDataTimer && !sendOwnMessage) {
+    
+    buoy.send_data(ownData);
+    idCheck[0] = BUOY_ID;
+    receivedIDs++;
+    lastSentMessage = millis();
+    sendOwnMessage = true;
+  }
+
   
   // Start listening loop!
-  while (30000 > millis() - lastSentMessage) {
     if (buoy.receive_data(receivedData)) {
       alreadySentID = false;
 
@@ -270,11 +287,10 @@ void loop() {
         }
       }
       sendingOrderForBuoys();
-      }
+    }
     // Check if witholding ID sent from 2 buoys away is already sent through a closer buoy in the meantime
     alreadySentID2 = false;
     isWitheldDataAlreadySent();
-  }
 
   
 
@@ -286,9 +302,25 @@ void loop() {
 
   // After a certain amount of time, check how long it's been awake
   // After 30 seconds of being awake, sleep
-  buoy.sleep_radio();
-  esp_sleep_enable_timer_wakeup(10ULL * 1000000ULL);  // 10 seconds as an example of sleep instead of WiFi
-  esp_deep_sleep_start();
+  if (10000 < millis() - lastSentMessage) {
+    time_t now = time(NULL);
+    struct tm *local_time = localtime(&now);
+    int current_minute = local_time->tm_min;
+    int current_second = local_time->tm_sec;
+    int remainder = current_minute % INTERVAL_MINUTES;
+    int time_to_current_interval = ((INTERVAL_MINUTES - remainder) * 60) - current_second;
+    int seconds_to_next_full_interval = time_to_current_interval + (INTERVAL_MINUTES * 60);
+    int sleep_duration = seconds_to_next_full_interval - (WAKEUP_MINUTES_BEFORE * 60);
+    if (sleep_duration <= 0) {
+      sleep_duration = seconds_to_next_full_interval + (INTERVAL_MINUTES * 60) - (WAKEUP_MINUTES_BEFORE * 60);
+      if (sleep_duration <= 0) {
+        sleep_duration = 1;
+      }
+    }
+
+    buoy.sleep_radio();
+    sleepTime(sleep_duration);
+  }
 }
 
 float metersPerDegreeLon(float lon) {
