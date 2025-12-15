@@ -79,10 +79,10 @@ void logBuoyData(const BuoyData &data, const char *level)
   mainLog.logln(data.battery_voltage, level, false);
 
   mainLog.log("gps_latitude: ", level, true);
-  mainLog.logln(data.gps_latitude, level, false);
+  mainLog.logln(data.gps_latitude, 10, level, false);
 
   mainLog.log("gps_longitude: ", level, true);
-  mainLog.logln(data.gps_longitude, level, false);
+  mainLog.logln(data.gps_longitude, 10, level, false);
 
   mainLog.log("accelerometer_jerk: ", level, true);
   mainLog.logln(data.accelerometer_jerk, level, false);
@@ -256,7 +256,7 @@ void loop() {
     lastSentMessage = millis();
   }
 
-  
+
   // Start listening loop!
   while (30000 > millis() - lastSentMessage) {
     if (buoy.receive_data(receivedData)) {
@@ -286,9 +286,7 @@ void loop() {
 
   // After a certain amount of time, check how long it's been awake
   // After 30 seconds of being awake, sleep
-  buoy.sleep_radio();
-  esp_sleep_enable_timer_wakeup(10ULL * 1000000ULL);  // 10 seconds as an example of sleep instead of WiFi
-  esp_deep_sleep_start();
+  /*buoy.sleep_radio();*/
 }
 
 float metersPerDegreeLon(float lon) {

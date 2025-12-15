@@ -60,6 +60,21 @@ double location[][2] = {
   {12.345678, 1.234567}
 };
 
+void reset() {
+    memset(idCheck, 0, sizeof(idCheck));
+    memset(signalFrom, 0, sizeof(signalFrom));
+    memset(batteryStatus, 0, sizeof(batteryStatus));
+    memset(accelerometerHit, 0, sizeof(accelerometerHit));
+
+    receivedIDs = 0;
+    initialTest = 0;
+    errorSendMessage = 0;
+    startTest = 0;
+    idAbove = true;
+    fakeWiFiTimer = 0;
+    maximumWiFiTimer = 0;
+}
+
 double maxDistance = ((DIST_THRESH * DIST_THRESH) / (METERS_PER_DEGREE_LAT * METERS_PER_DEGREE_LAT));
 
 // Placing global variable onto the RTC module that gets remembered through deep sleep
@@ -79,7 +94,9 @@ double convertTodegrees(double raw) {
   return decimal;
 }
 
-void testBuoy() {
+void testBuoy() 
+{
+  // test 1
   // Insert the first test 
   fakeData.buoy_number = BUOY_ID_TEST - 1;
   fakeData.sent_from = BUOY_ID_TEST - 1;
@@ -100,7 +117,7 @@ void testBuoy() {
     Serial.println("Error happened during transmission of ID under buoy!");
   }
 
-
+  // test 2
   // Send from ID 1 above, which should instantly send back.
   // Also, send message again later, to see if buoy ignores second message
   for (int i = 0; i < 2; i++) {
@@ -131,9 +148,9 @@ void testBuoy() {
     }
     // If something is missing, save!
     // Check also if something was sent back here, to see if buoy sends same ID twice
-
   }
 
+  // test 3
   // Check if sending a signal from far away triggers the buoy instantly or waits
   fakeData.buoy_number = BUOY_ID_TEST + 2;
   fakeData.sent_from = BUOY_ID_TEST + 2;
@@ -168,9 +185,8 @@ void testBuoy() {
     Serial.println("ID should be 3:");
     Serial.println(fakeData.buoy_number);
   }
-    
-  // If something is missing, save!
-    
+
+  // test 4
   // Check also ID above 3
   fakeData.buoy_number = BUOY_ID_TEST + 3;
   delay(1000);
@@ -214,9 +230,8 @@ void loop() {
     maximumWiFiTimer = millis();
     initialTest = 1;
   }
-  
-  // Pretend Sleep here is timed with the Internet
 
+  // Pretend Sleep here is timed with the Internet
   buoy.receive_data(receivedData);
   if (receivedData.buoy_number > 0) {
     // Check here if you have seen the buoy before
@@ -247,7 +262,7 @@ void loop() {
 
       // Longitude degree per meter changes from how far up you are, use original location to get a guesstimate
       double lon_diff_meters = (convertTodegrees(receivedData.gps_longitude) - location[receivedData.buoy_number - 1][1]) * cos(location[receivedData.buoy_number - 1][1] * PI / 180);
-      
+
       // Pythagoras to figure out how far away it is
       double distance = (lon_diff_meters * lon_diff_meters) + (lat_diff_meters * lat_diff_meters);
 
@@ -276,7 +291,6 @@ void loop() {
       Serial.println("Er lampen tændt?:");
       Serial.println(receivedData.lamp_current);
 
-
       // Reset timer because we received a message
       fakeWiFiTimer = millis();
 
@@ -292,7 +306,6 @@ void loop() {
 
   // If 30 seconds passes without a signal or if 25 minutes pass
   if (30000 < millis() - fakeWiFiTimer || 1500000 < millis() - maximumWiFiTimer) {
-
 
     // Check all buoys
     for (int i = 0; i < BUOY_AMOUNT; i++) {
@@ -345,19 +358,10 @@ void loop() {
           Serial.println("Haven't received from Buoy after 3 attempts!");
         }
         if (batteryLow) {
-          switch (batteryStatus[i]) {
-            case 1:
-              Serial.println("Battery is at 40%");
-              break;
-            case 2:
-              Serial.println("Battery is at 15%");
-              break;
-            case 3:
-              Serial.println("Warning: Battery is either dead or couldn't be read.");
-              break;
-            default:
-              Serial.println("ERROR: Battery was registered to be beyond 3, something went wrong in calculating battery level!");
-          }
+          Serial.print("battery voltage on buoy ");
+          Serial.print(i);
+          Serial.print(": ");
+          Serial.println(batteryStatus[i]);
         }
         if (lampOff) {
           Serial.println("Lamp isn't functioning!");
@@ -365,11 +369,7 @@ void loop() {
         Serial.println("");
       }
     }
-
-
-    // Amonut of time the ESP should sleep for, in the real version should be accounted for with WiFi
-    // ULL = Unsigned Long Long
-    esp_sleep_enable_timer_wakeup(10ULL * 1000000ULL);  // 10 seconds as an example of sleep instead of WiFi
-    esp_deep_sleep_start();
+    // reset global var
+    reset();
   }
 }
