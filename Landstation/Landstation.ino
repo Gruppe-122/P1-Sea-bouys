@@ -107,21 +107,20 @@ void testBuoy()
   buoy.send_data(fakeData);
   delay(2000);
   receivedData.buoy_number = 0;
-  buoy.receive_data(receivedData);
+  Serial.println("Test 1:");
   // Shouldn't receive anything!
-  if (receivedData.buoy_number == 0)
-  {
+  if (buoy.receive_data(receivedData);) {
+    if (receivedData.buoy_number == 3) {
+      Serial.println("Error! Got data back!");
+    }
+    else {
+      Serial.println("Error! Got message! Message not from buoy system");
+    }
+  }
+  else {
     Serial.println("Buoy correctly disregarded data!");
   }
-  else if (receivedData.buoy_number == 3)
-  {
-    Serial.println("Error! Got data back!");
-  }
-  else
-  {
-    Serial.println("Error! Buoy ID was neither 0 nor 3!");
-    Serial.println("Error happened during transmission of ID under buoy!");
-  }
+  
 
   // test 2
   // Send from ID 1 above, which should instantly send back.
@@ -135,11 +134,12 @@ void testBuoy()
     delay(2000);
     receivedData.buoy_number = 0;
     buoy.receive_data(receivedData);
+    Serial.println("Test 2:")
     //
     if (i == 0)
     {
       Serial.println("This should have the value 3:");
-      Serial.println(receivedData.buoy_number);
+      Serial.println(receivedData.sent_from);
       // Resets to check if we get the message again when we send it a second time
       receivedData.buoy_number = 0;
     }
@@ -166,16 +166,16 @@ void testBuoy()
   fakeData.buoy_number = BUOY_ID_TEST + 2;
   fakeData.sent_from = BUOY_ID_TEST + 2;
   delay(1000);
-  Serial.println("Sent from ID 2 above");
+  Serial.println("Test 3: Sent from ID 2 above");
   buoy.send_data(fakeData);
   // Small delay to make sure it could send data back in case something's wrong
   // Delay shouldn't be too big, buoy sends data after 600 milliseconds if it doesn't get from another buoy
   delay(200);
   // If no data below, check is correct, nothing was sent back!
-  fakeData.buoy_number = 0;
+  fakeData.sent_from = 0;
   buoy.receive_data(receivedData);
   Serial.println("Should be 0:");
-  Serial.println(fakeData.buoy_number);
+  Serial.println(receivedData.sent_from);
   // NOW see if it gets the message if you pretend to send it from the one it's supposed to hear from
   if (idAbove == 1)
   {
@@ -187,7 +187,7 @@ void testBuoy()
     buoy.receive_data(receivedData);
     Serial.println("Got ID 2 info from ID 1!");
     Serial.println("ID should be 3:");
-    Serial.println(fakeData.buoy_number);
+    Serial.println(receivedData.sent_from);
   }
   else
   {
@@ -196,7 +196,7 @@ void testBuoy()
     buoy.receive_data(receivedData);
     Serial.println("Got ID 2 info from ID 2!");
     Serial.println("ID should be 3:");
-    Serial.println(fakeData.buoy_number);
+    Serial.println(receivedID.sent_from);
   }
 
   // test 4
@@ -208,7 +208,7 @@ void testBuoy()
   delay(2000);
   buoy.receive_data(receivedData);
   Serial.println("Should be 0:");
-  Serial.println(fakeData.buoy_number);
+  Serial.println(receivedData.buoy_number);
 
   // We now need to make sure the landstation thinks it's gotten a whole system of buoys
   for (int i = 0; i < BUOY_AMOUNT; i++)
