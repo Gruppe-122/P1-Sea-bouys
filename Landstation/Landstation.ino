@@ -17,6 +17,8 @@
 #define BUOY_ID_TEST 3 
 #define TEST true
 
+static const float WAIT_FOR_CYCLE_END = 0;
+
 //Variables
 meshalternativ buoy;
 BuoyData fakeData;
