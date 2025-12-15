@@ -1,132 +1,181 @@
 #include "accel.h"
+#include "driver/rtc_io.h"
 
-struct AccelData
-{ // samler x y og z under en varibel = AccelData
-    float x;
-    float y;
-    float z;
-};
+#define ADXL345_ADDRESS 0x53
 
-static Adafruit_ADXL345_Unified accelM;
-static bool done = false;
 static float xtest[100];
 static float ytest[100];
 static float ztest[100];
-static float gennemsnitX, gennemsnitY, gennemsnitZ = 0;
-static float sumX, sumY, sumZ = 0;
+static float gennemsnitX = 0, gennemsnitY = 0, gennemsnitZ = 0;
+static float sumX = 0, sumY = 0, sumZ = 0;
+volatile bool activityDetected = false;
 
-AccelData readAcceleration()
+static void writeRegister(uint8_t deviceAddress, uint8_t registerAddress, uint8_t value)
+{ // funktionen gør at vi kan ændre registrene på ADXL345
+    Wire.beginTransmission(deviceAddress);
+    Wire.write(registerAddress);
+    Wire.write(value);
+    Wire.endTransmission();
+}
+
+static byte readRegister(uint8_t deviceAddress, uint8_t registerAddress)
+{ // funktionen læser hvad der står på de gældene registre, så der kan tjekkes om det der står er rigtig
+    Wire.beginTransmission(deviceAddress);
+    Wire.write(registerAddress);
+    Wire.endTransmission(false);
+    Wire.requestFrom(deviceAddress, (uint8_t)1);
+    return Wire.read();
+}  
+
+void resetINT1()
 {
-    sensors_event_t event;   // opretter en struct (fra library adafruit sensor)
-    accelM.getEvent(&event); // fylder event værdier
-
-    AccelData data; // opretter variabel af AccelData og indsætter værdier fra structen event
-    data.x = event.acceleration.x;
-    data.y = event.acceleration.y;
-    data.z = event.acceleration.z;
-
-    return data;
+    accelLog.logln("reset the interrupt pin 5", "INFO", true);
+    readRegister(ADXL345_ADDRESS, 0x30); // ifølge datasheet, når man læser int_source, så clearer den alle interrupts
 }
 
 int accelSetup()
 {
-    accelM = Adafruit_ADXL345_Unified(12345);
+    accelLog.logln("setup accelometer", "INFO", true);
+    Wire.begin(6, 7); // SDA og SCL
 
-    Wire.begin(7, 6); // fortæller hvilke pins der bruges, 7 = SDA og 6 = SCL
+    accelLog.logln("tænder målings mode", "INFO", true);
+    writeRegister(ADXL345_ADDRESS, 0x2D, 0x08);
+    delay(10);
 
-    if (!accelM.begin())
-    {
-        Serial.println("ADXL345 ikke fundet!");
-        while (1)
-            ;
-    }
+    accelLog.logln("sets range 4G", "INFO", true);
+    writeRegister(ADXL345_ADDRESS, 0x31, 0x01); // range 4G
 
-    accelM.setRange(ADXL345_RANGE_16_G); // sætter range til +-16 g
+    accelLog.logln("sets (43 for 2.69G - 0x18 for 1.5G) treshhold", "INFO", true);
+    writeRegister(ADXL345_ADDRESS, 0x24, 0x18); //(0x18 for 1.5G) treshhold
+
+    accelLog.logln("aktivere måling på hhv. x, y og z", "INFO", true);
+    writeRegister(ADXL345_ADDRESS, 0x27, 0xF0); // aktivere måling på hhv. x, y og z
+
+    writeRegister(ADXL345_ADDRESS, 0x2E, 0x00);
+
+    accelLog.logln("alle bits sat til 0, for at aktivere på INT1, modsat for INT2", "INFO", true);
+    writeRegister(ADXL345_ADDRESS, 0x2F, 0x00); // alle bits sat til 0, for at aktivere på INT1, modsat for INT2
+
+    writeRegister(ADXL345_ADDRESS, 0x38, 0x00);
+
+    accelLog.logln("aktivere interrupt", "INFO", true);
+    writeRegister(ADXL345_ADDRESS, 0x2E, 0x10); // aktivere interrupt
+
+    accelLog.logln("0x1B->100hz 0x0D -> 400hz", "INFO", true);
+    writeRegister(ADXL345_ADDRESS, 0x2C, 0x0B); // 0x1B->100hz 0x0D -> 400hz
+
+    pinMode(5, INPUT_PULLDOWN);
+    delay(10);
+
+    resetINT1();
 
     return 1;
+}
+
+AccelData readAccel()
+{
+    int16_t raw_x = (readRegister(ADXL345_ADDRESS, 0x33) << 8 | readRegister(ADXL345_ADDRESS, 0x32));
+    int16_t raw_y = (readRegister(ADXL345_ADDRESS, 0x35) << 8 | readRegister(ADXL345_ADDRESS, 0x34));
+    int16_t raw_z = (readRegister(ADXL345_ADDRESS, 0x37) << 8 | readRegister(ADXL345_ADDRESS, 0x36));
+
+    AccelData data;
+    data.x = raw_x * 0.0078;
+    data.y = raw_y * 0.0078; // 7.8mg / LBS for at få reelle målinger
+    data.z = raw_z * 0.0078;
+
+    return data;
 }
 
 int calibrate()
 {
-    if (done == false)
-    {
-        Serial.println("KALIBRERING starter om 5 sekunder:");
-        Serial.println("PLACER VERTIKALT FLADT");
-        for (int x = 5; x > 0; x--)
-        {
-            Serial.println(x);
-            delay(1000);
-        }
-        for (int i = 0; i < sizeof(xtest) / sizeof(xtest[0]); i++)
-        { // hver gang "i", skal vi readAcceleration og gemme i et array i struct maling
-            AccelData maling = readAcceleration();
-            xtest[i] = maling.x;
-            ytest[i] = maling.y;
-            ztest[i] = maling.z;
-            sumX += xtest[i];
-            sumY += ytest[i];
-            sumZ += ztest[i];
-            delay(50);
+    accelLog.log("KALIBRERING starter om 5 sekunder:", "INFO", true);
+    accelLog.log("PLACER VERTIKALT FLADT", "INFO", true);
 
-            done = true;
-        }
-
-        gennemsnitX = sumX / (sizeof(xtest) / sizeof(xtest[0]));
-        gennemsnitY = sumY / (sizeof(ytest) / sizeof(ytest[0]));
-        gennemsnitZ = sumZ / (sizeof(ztest) / sizeof(ztest[0]));
-
-        Serial.println("KALIBRERING DONE:");
-
-        Serial.print("X i m/s2 -> sum ");
-        Serial.print(sumX);
-        Serial.print(" gennemsnit ->");
-        Serial.println(gennemsnitX);
-
-        Serial.print("Y i m/s2 -> sum ");
-        Serial.print(sumY);
-        Serial.print(" gennemsnit ->");
-        Serial.println(gennemsnitY);
-
-        Serial.print("Z i m/s2 -> sum ");
-        Serial.print(sumZ);
-        Serial.print(" gennemsnit ->");
-        Serial.println(gennemsnitZ);
-
-        delay(3000);
-
-        return 1;
+    for (int i = 0; i < sizeof(xtest) / sizeof(xtest[0]); i++)
+    { // hver gang "i", skal vi readAcceleration og gemme i et array i struct
+        AccelData accel = readAccel();
+        xtest[i] = accel.x;
+        ytest[i] = accel.y;
+        ztest[i] = accel.z;
+        sumX += xtest[i];
+        sumY += ytest[i];
+        sumZ += ztest[i];
+        delay(50);
     }
+
+    gennemsnitX = sumX / (sizeof(xtest) / sizeof(xtest[0]));
+    gennemsnitY = sumY / (sizeof(ytest) / sizeof(ytest[0]));
+    gennemsnitZ = sumZ / (sizeof(ztest) / sizeof(ztest[0]));
+    accelLog.logln("KALIBRERING DONE", "INFO", true);
+
+    accelLog.log("X i m/s2 -> sum ", "DEBUG", true);
+    accelLog.logln(sumX, "DEBUG", false);
+    accelLog.log(" gennemsnit ->", "DEBUG", true);
+    accelLog.logln(gennemsnitX, "DEBUG", false);
+
+    accelLog.log("Y i m/s2 -> sum ", "DEBUG", true);
+    accelLog.logln(sumY, "DEBUG", false);
+    accelLog.log(" gennemsnit ->", "DEBUG", true);
+    accelLog.logln(gennemsnitY + 1, "DEBUG", false);
+
+    accelLog.log("Z i m/s2 -> sum ", "DEBUG", true);
+    accelLog.logln(sumZ, "DEBUG", false);
+    accelLog.log(" gennemsnit ->", "DEBUG", true);
+    accelLog.logln(gennemsnitZ, "DEBUG", false);
+
+    return 1;
 }
 
-int accelerometer()
+bool accelerometer()
 {
-    AccelData a = readAcceleration();
+    int intState = digitalRead(5);
 
-    float xG = (a.x - gennemsnitX);
-    float yG = (a.y - gennemsnitY);
-    float zG = (a.z - gennemsnitZ);
+    AccelData accel = readAccel();
+    float xG = (accel.x - gennemsnitX);
+    float yG = (accel.y - gennemsnitY);
+    float zG = (accel.z - gennemsnitZ);
 
-    float samletPavirkning = sqrt(xG * xG + yG * yG + zG * zG) / tyngdeAcc; // vektorlængden, så roden ax,ay,az i anden, delt med 9.81 for G
+    accelLog.log("min:", "DEBUG", true);
+    accelLog.logln(-16, "DEBUG", false);
 
-    Serial.print("min:");
-    Serial.print(-16);
-    Serial.print("\tmax:");
-    Serial.print(16);
-    Serial.print(" ");
-    Serial.print("X:");
-    Serial.print(xG);
-    Serial.print(" Y:");
-    Serial.print(yG);
-    Serial.print(" Z:");
-    Serial.print(zG);
-    Serial.print(" Total:");
-    Serial.println(samletPavirkning);
+    accelLog.log("max:", "DEBUG", true);
+    accelLog.logln(16, "DEBUG", false);
 
-    if (samletPavirkning > 4)
+    // X
+    accelLog.log("X:", "DEBUG", true);
+    accelLog.logln(xG, "DEBUG", false);
+
+    // Y
+    accelLog.log("Y:", "DEBUG", true);
+    accelLog.logln(yG, "DEBUG", false);
+
+    // Z
+    accelLog.log("Z:", "DEBUG", true);
+    accelLog.logln(zG, "DEBUG", false);
+
+    if (intState == HIGH)
     {
-        return 0;
+        accelLog.logln("!!AKTIVITET REGISTRERET!!", "INFO", true);
+        resetINT1();
+        return true;
     }
 
-    delay(50);
-    return 1;
+    // byte intSource = readRegister(ADXL345_ADDRESS, 0x30);
+    // Serial.print("INT_SOURCE register: 0x");
+    // Serial.println(intSource, HEX);
+    // if (intSource & 0x10)
+    // {
+    //     Serial.println("!!AKTIVITET AKTIVITET!!");
+    //     resetINT1();
+    //     return true;
+    // }
+    // else
+    // {
+    //     Serial.println("INGEN AKTIVITET");
+    //     Serial.print("Actual interrupt: 0x");
+    //     Serial.println(intSource, HEX);
+
+    //     resetINT1();
+    // }
+    return false;
 }

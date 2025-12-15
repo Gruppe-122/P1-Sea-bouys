@@ -1,3 +1,13 @@
+## Includes
+Put your nonstandard library includes here (the ones you had to install separately)
+available in the arduino ide unless otherwise noted
+
+/ RadioLib 
+https://github.com/jgromes/RadioLib
+
+/ Adafruit_Sensor
+https://github.com/adafruit/Adafruit_Sensor
+
 ## Kom igang med projektet
 Her en lille guide til at hvordan man får det sat op med git. Guiden forudsætter af Git allerede er installeret på computeren
 Først  skal man initiere projektet i den mappe man gerne vil bruge f.eks bruger\dokumenter

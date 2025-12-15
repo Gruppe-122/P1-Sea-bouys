@@ -60,8 +60,6 @@ void loop() {
       sumX += xtest[i];
       sumY += ytest[i];
       sumZ += ztest[i];
-      delay(50);
-
       done = true;
     }
 
@@ -113,8 +111,6 @@ void loop() {
 
   if (samletPavirkning > 4) {
     Serial.print("PORT OF AALBORG BESKED");
-    delay(10000);
+    delay(5000);
   }
-
-  delay(50);
 }
