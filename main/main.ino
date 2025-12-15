@@ -264,6 +264,7 @@ void loop() {
         // If it's over 30 meters away (30*30 = 900) - An extra check in case the buoy doesn't know it's out of its position
       if (distance > maxDistance) {
           gpsTries++;
+          Serial.println("GPS Out of range! This message will appear 3 times if this is out of range!")
       }
       else {
           break;
