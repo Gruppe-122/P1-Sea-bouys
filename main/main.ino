@@ -38,8 +38,11 @@
 #define LONGITUDE 9.925497
 #define METERS_PER_DEGREE_LAT 111120.0
 #define uS_TO_S_FACTOR 1000000ULL
+<<<<<<< HEAD
 #define INTERVAL_MINUTES 5
 #define WAKEUP_MINUTES_BEFORE 2
+=======
+>>>>>>> origin
 
 #define CURRENT_POWER_PIN 0
 #define VOLTAGE_POWER_PIN 2
@@ -65,7 +68,10 @@ logger mainLog = logger("MAIN", "INFO");
 
 void syncTime(){
   mainLog.logln("started sync", "INFO", true);
+<<<<<<< HEAD
   initGNSS(GPSSerial, GPSRX, GPSTX);
+=======
+>>>>>>> origin
   readGNSS(&GNSSData, GPSSerial);
   syncTimeFromGPS(GNSSData.utc);
   mainLog.logln("time sync", "INFO", true);
@@ -132,7 +138,11 @@ void collectSensorData()
   digitalWrite(VOLTAGE_POWER_PIN, LOW);
 }
 
+<<<<<<< HEAD
 void sleepTime(unsigned long sec) {
+=======
+void sleep(unsigned long sec = 1800) {
+>>>>>>> origin
   esp_sleep_enable_ext0_wakeup(GPIO_NUM_5, 1);
   esp_sleep_enable_timer_wakeup((uint64_t)sec * uS_TO_S_FACTOR);
   Serial.flush();
@@ -140,6 +150,7 @@ void sleepTime(unsigned long sec) {
   esp_deep_sleep_start();
 }
 
+<<<<<<< HEAD
 void isWitheldDataAlreadySent();
 void sendingOrderForBuoys();
 
@@ -159,6 +170,14 @@ bool alreadySentID = false;
 bool alreadySentID2 = false;
 bool sendOwnMessage = false;
 
+=======
+// saves data on RTC RAM so it is remembered from each sleep cycle
+RTC_DATA_ATTR uint8_t accelerometerHit;
+
+void isWitheldDataAlreadySent();
+void sendingOrderForBuoys();
+
+>>>>>>> origin
 void setup()
 {
   Serial.begin(115200);
@@ -205,10 +224,26 @@ void setup()
   calibrate();
 }
 
+<<<<<<< HEAD
 void loop() {
     // Wake up
     // initialized = 0 somewhere in wake up
 
+=======
+int idCheck[BUOY_AMOUNT];
+int receivedIDs = 0;
+unsigned int buoySendDelay = 0;
+unsigned long lastSentMessage = 0;
+bool sendDelay = false;
+bool initialized = false;
+bool alreadySentID = false;
+bool alreadySentID2 = false;
+
+void loop() {
+    // Wake up
+    // initialized = 0 somewhere in wake up
+
+>>>>>>> origin
   if(!initialized) {
     // Check accelerometer, if it was hit
     // If it was hit during sleep, it's gonna be 1
@@ -229,7 +264,11 @@ void loop() {
       ownData.accelerometer_jerk = 0;
       accelerometerHit = 0;
     }
+<<<<<<< HEAD
     else if (accelerometerHit != 0) {
+=======
+    else if (accelerometer != 0) {
+>>>>>>> origin
       Serial.println("Error! 'accelerometerHit' was not within the interval [0,4]");
     }
     // Check battery
@@ -241,6 +280,7 @@ void loop() {
     uint8_t gpsTries = 0;
     while (gpsTries < 3) {
 
+<<<<<<< HEAD
       // TJEK GPS HER
       // readGNSS(&GNSSData, GPSSerial);
       //   ownData.gps_latitude = 0.0;
@@ -255,6 +295,22 @@ void loop() {
 
       // Pythagoras to figure out if it's far away
       double distance = (lon_diff_meters * lon_diff_meters) + (lat_diff_meters * lat_diff_meters);
+=======
+        // TJEK GPS HER
+        // readGNSS(&GNSSData, GPSSerial);
+        //   ownData.gps_latitude = 0.0;
+        //   ownData.gps_longitude = 0.0;
+        // PrintGPSData(GNSSData);
+
+        // Original position to GPS position
+        double lat_diff_meters = (ownData.gps_latitude - LATITUDE) * METERS_PER_DEGREE_LAT;
+
+        // Longitude degree per meter changes from how far up you are, use original location to get a guesstimate
+        double lon_diff_meters = (ownData.gps_longitude - LONGITUDE) * metersPerDegreeLon(LONGITUDE);
+
+        // Pythagoras to figure out if it's far away
+        double distance = (lon_diff_meters * lon_diff_meters) + (lat_diff_meters * lat_diff_meters);
+>>>>>>> origin
 
 
         // If it's over 30 meters away (30*30 = 900) - An extra check in case the buoy doesn't know it's out of its position
@@ -268,6 +324,7 @@ void loop() {
   
     // Start ALARM MODE if GPS was out of range 3 times
     if (gpsTries >= 3) {
+<<<<<<< HEAD
       ownData.alarm = true;
     }
     initialized = true;
@@ -281,10 +338,24 @@ void loop() {
     receivedIDs++;
     lastSentMessage = millis();
     sendOwnMessage = true;
+=======
+        ownData.alarm = true;
+    }
+    // Make a delay here based on TIME until when you want to send (Specific time of day + ID)
+    delay(BUOY_ID*1000);
+
+    buoy.send_data(ownData);
+    // Adding own buoy to the array of sent bouys
+    idCheck[0] = BUOY_ID;
+    receivedIDs++;
+    initialized = true;
+    lastSentMessage = millis();
+>>>>>>> origin
   }
 
   
   // Start listening loop!
+<<<<<<< HEAD
   if (buoy.receive_data(receivedData)) {
       alreadySentID = false;
 
@@ -294,10 +365,76 @@ void loop() {
       if(receivedData.buoy_number == idCheck[i]){
         alreadySentID = true;
       }
+=======
+  while (30000 > millis() - lastSentMessage) {
+    if (buoy.receive_data(receivedData)) {
+      alreadySentID = false;
+
+
+      // Amount of IDs received, check if already in array or if it hasn't received anything new
+      for(int i=0; i<receivedIDs; i++){ 
+        if(receivedData.buoy_number == idCheck[i]){
+          alreadySentID = true;
+        }
+      }
+      sendingOrderForBuoys();
+      }
+    // Check if witholding ID sent from 2 buoys away is already sent through a closer buoy in the meantime
+    alreadySentID2 = false;
+    isWitheldDataAlreadySent();
+  }
+
+  
+
+  // ALARM MODE! BUOY IS NOT IN LOCATION
+  // NOT allowed to go beyond Duty Cycle of 1% transmission time of an hour, that is 36 seconds of total transmission time.
+  // Remember, all the other buoys repeating the message will also be repeating higher ID buoy messages.
+
+
+
+  // After a certain amount of time, check how long it's been awake
+  // After 30 seconds of being awake, sleep
+  buoy.sleep_radio();
+  esp_sleep_enable_timer_wakeup(10ULL * 1000000ULL);  // 10 seconds as an example of sleep instead of WiFi
+  esp_deep_sleep_start();
+}
+
+float metersPerDegreeLon(float lon) {
+  // cos uses cosine with radians, so we change degrees to radians
+  float metersPerDegreeLon = METERS_PER_DEGREE_LAT * cos(lon * PI / 180.0);
+  return metersPerDegreeLon;
+}
+
+void sendingOrderForBuoys() {
+    // If it's from a buoy further away (next to it or once removed). Odds of both disappearing is small, no need to complicate the system.
+  if(alreadySentID == false && BUOY_ID < receivedData.sent_from && receivedData.sent_from < (BUOY_ID + 3)){
+    // If it's from an ID+1 of its own, don't delay.
+    if(receivedData.sent_from == (BUOY_ID + 1)){
+      
+      // Take buoy number, put into idCheck with received IDs number, add a new received ID for the next buoy
+      // also if statement to make sure it doesnt crash if you receive ID above what buoy was meant to
+      if (receivedIDs < BUOY_AMOUNT) {
+        idCheck[receivedIDs] = receivedData.buoy_number;
+        receivedIDs++;
+      }
+      // Send data onwards
+      receivedData.sent_from = BUOY_ID;
+      buoy.send_data(receivedData);
+      lastSentMessage = millis();
+    }
+    // If it's from an ID+2 of its own, start timer to delay sending it.
+    if(receivedData.sent_from == (BUOY_ID + 2)){
+      withholdingReceivedData = receivedData;
+      // Delay for when it should send so it doesn't interrupt with the other ID, and also can hear if another ID
+      buoySendDelay = millis();
+      sendDelay = true;
+>>>>>>> origin
     }
     sendingOrderForBuoys();
   }
+}
 
+<<<<<<< HEAD
   // Check if witholding ID sent from 2 buoys away is already sent through a closer buoy in the meantime
   alreadySentID2 = false;
   isWitheldDataAlreadySent();
@@ -362,6 +499,8 @@ void sendingOrderForBuoys() {
   }
 }
 
+=======
+>>>>>>> origin
 void isWitheldDataAlreadySent() {
   if (600 < millis() - buoySendDelay && sendDelay == true && withholdingReceivedData.buoy_number != 0) {
     for(int i=0; i<receivedIDs; i++){
