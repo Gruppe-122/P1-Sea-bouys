@@ -125,7 +125,7 @@ void testBuoy()
   // test 2
   // Send from ID 1 above, which should instantly send back.
   // Also, send message again later, to see if buoy ignores second message
-  Serial.println("Test 2:")
+  Serial.println("Test 2:");
   for (int i = 0; i < 2; i++)
   {
     fakeData.buoy_number = BUOY_ID_TEST + 1;
@@ -302,6 +302,8 @@ void loop()
         // Print alle værdier fra HER for at vise, at vi fik fra Bøje 3
         Serial.print("Fået information! Fra bøje nr. ");
         Serial.println(receivedData.buoy_number);
+        Serial.print("Bøje alarm: ");
+        Serial.println(receivedData.alarm);
         Serial.print("Sent fra: nr. ");
         Serial.println(receivedData.sent_from);
         Serial.println("Batteri spænding:");
