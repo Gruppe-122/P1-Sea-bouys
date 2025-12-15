@@ -60,11 +60,12 @@ logger accelLog = logger("ACCELOMETER", "INFO");
 logger currentLog = logger("CURRENT", "INFO");
 logger voltLog = logger("VOLT", "INFO");
 logger meshLog = logger("MESH", "INFO");
-logger gpsLog = logger("GPS", "INFO");
+logger gpsLog = logger("GPS", "DEBUG");
 logger mainLog = logger("MAIN", "INFO");
 
 void syncTime(){
   mainLog.logln("started sync", "INFO", true);
+  initGNSS(GPSSerial, GPSRX, GPSTX);
   readGNSS(&GNSSData, GPSSerial);
   syncTimeFromGPS(GNSSData.utc);
   mainLog.logln("time sync", "INFO", true);
@@ -143,7 +144,7 @@ void isWitheldDataAlreadySent();
 void sendingOrderForBuoys();
 
 // saves data on RTC RAM so it is remembered from each sleep cycle
-RTC_DATA_ATTR uint8_t accelerometerHit;
+RTC_DATA_ATTR uint8_t accelerometerHit = 0;
 
 
 int idCheck[BUOY_AMOUNT];
@@ -163,12 +164,13 @@ void setup()
   Serial.begin(115200);
 
   // GPS
-  initGNSS(GPSSerial, GPSRX, GPSTX);
+  delay(10000);
   syncTime();
   // Get time and date
   // We put our time into an int
   time_t now = time(NULL);
   // We now put the adress of this integer into a command to make it into a time struct. localtime requires a pointer
+  struct tm *local_time = localtime(&now);
   int current_minute = local_time->tm_min;
   int current_second = local_time->tm_sec;
   // How many minutes have passed in the interval
@@ -178,6 +180,8 @@ void setup()
   // Make amount of time left into milliseconds
   milliseconds_until_interval = ((minutes_to_next * 60) - current_second) * 1000;
   sendDataTimer = millis();
+  Serial.print("Milliseconds until interval where it should send:");
+  Serial.println(milliseconds_until_interval);
 
 
   // voltage measurements
@@ -211,6 +215,7 @@ void loop() {
     // If it was hit two cycles ago, it'll be 2, 3 will be 3, and then it resets
     // Gives a general idea of how long it was hit last, in case a message fails to send
     collectSensorData();
+    ownData.sent_from = 3;
     logBuoyData(ownData, "TEST");
 
     if (ownData.accelerometer_jerk != 0) {
@@ -224,7 +229,7 @@ void loop() {
       ownData.accelerometer_jerk = 0;
       accelerometerHit = 0;
     }
-    else if (accelerometer != 0) {
+    else if (accelerometerHit != 0) {
       Serial.println("Error! 'accelerometerHit' was not within the interval [0,4]");
     }
     // Check battery
@@ -270,7 +275,7 @@ void loop() {
   }
 
   if (milliseconds_until_interval + (BUOY_ID * 1000) < millis() - sendDataTimer && !sendOwnMessage) {
-
+    Serial.println("Message has been sent!");
     buoy.send_data(ownData);
     idCheck[0] = BUOY_ID;
     receivedIDs++;
@@ -299,7 +304,7 @@ void loop() {
 
   // After a certain amount of time, check how long it's been awake
   // After 30 seconds of being awake, sleep
-  if (10000 < millis() - lastSentMessage) {
+  if (10000 < millis() - lastSentMessage && sendOwnMessage) {
     // We put our time into an int
     time_t now = time(NULL);
     // We now put the adress of this integer into a command to make it into a time struct. localtime requires a pointer
@@ -307,16 +312,18 @@ void loop() {
     int current_minute = local_time->tm_min;
     int current_second = local_time->tm_sec;
     int remainder = current_minute % INTERVAL_MINUTES;
-    int time_to_current_interval = ((INTERVAL_MINUTES - remainder) * 60) - current_second;
-    int seconds_to_next_full_interval = time_to_current_interval + (INTERVAL_MINUTES * 60);
+    int seconds_to_next_full_interval = ((INTERVAL_MINUTES - remainder) * 60) - current_second;
+    //int seconds_to_next_full_interval = time_to_current_interval + (INTERVAL_MINUTES * 60);
     int sleep_duration = seconds_to_next_full_interval - (WAKEUP_MINUTES_BEFORE * 60);
     if (sleep_duration <= 0) {
-      sleep_duration = seconds_to_next_full_interval + (INTERVAL_MINUTES * 60) - (WAKEUP_MINUTES_BEFORE * 60);
+    //  sleep_duration = seconds_to_next_full_interval + (INTERVAL_MINUTES * 60) - (WAKEUP_MINUTES_BEFORE * 60);
       if (sleep_duration <= 0) {
         sleep_duration = 1;
       }
     }
-
+    Serial.print("Going to sleep for ");
+    Serial.print(sleep_duration);
+    Serial.println(" seconds!");
     buoy.sleep_radio();
     sleepTime(sleep_duration);
   }
