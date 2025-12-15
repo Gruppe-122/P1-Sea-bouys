@@ -172,10 +172,9 @@ void testBuoy()
   // Delay shouldn't be too big, buoy sends data after 600 milliseconds if it doesn't get from another buoy
   delay(200);
   // If no data below, check is correct, nothing was sent back!
-  receivedData.sent_from = 0;
   buoy.receive_data(receivedData);
-  Serial.println("Should be 0:");
-  Serial.println(receivedData.sent_from);
+  Serial.println("If ID is 6, then it sent the message. If 5, then it's the last message:");
+  Serial.println(receivedData.buoy_number);
   // NOW see if it gets the message if you pretend to send it from the one it's supposed to hear from
   if (idAbove == 1)
   {
