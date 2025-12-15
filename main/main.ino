@@ -128,9 +128,9 @@ void collectSensorData()
   digitalWrite(VOLTAGE_POWER_PIN, LOW);
 }
 
-void sleep(unsigned long sec = 1800) {
+void sleepTime(unsigned long sec = 1800) {
   esp_sleep_enable_ext0_wakeup(GPIO_NUM_5, 1);
-  esp_sleep_enable_timer_wakeup((uint64_t)sec * uS_TO_S_FACTOR);
+  esp_sleep_enable_timer_wakeup((uint64_t)sec * uS_TO_S_FACTOR); // time er 2 32 bit registere til en 64 bit
   Serial.flush();
   delay(50);
   esp_deep_sleep_start();
@@ -286,7 +286,8 @@ void loop() {
 
   // After a certain amount of time, check how long it's been awake
   // After 30 seconds of being awake, sleep
-  /*buoy.sleep_radio();*/
+  buoy.sleep_radio();
+  sleepTime();
 }
 
 float metersPerDegreeLon(float lon) {
