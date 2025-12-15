@@ -196,7 +196,7 @@ void testBuoy()
     buoy.receive_data(receivedData);
     Serial.println("Got ID 2 info from ID 2!");
     Serial.println("ID should be 3:");
-    Serial.println(receivedID.sent_from);
+    Serial.println(receivedData.sent_from);
   }
 
   // test 4
