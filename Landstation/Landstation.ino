@@ -109,7 +109,7 @@ void testBuoy()
   receivedData.buoy_number = 0;
   Serial.println("Test 1:");
   // Shouldn't receive anything!
-  if (buoy.receive_data(receivedData);) {
+  if (buoy.receive_data(receivedData)) {
     if (receivedData.buoy_number == 3) {
       Serial.println("Error! Got data back!");
     }
@@ -134,7 +134,7 @@ void testBuoy()
     delay(2000);
     receivedData.buoy_number = 0;
     buoy.receive_data(receivedData);
-    Serial.println("Test 2:")
+    Serial.println("Test 2:");
     //
     if (i == 0)
     {
@@ -142,17 +142,13 @@ void testBuoy()
       Serial.println(receivedData.sent_from);
       // Resets to check if we get the message again when we send it a second time
       receivedData.buoy_number = 0;
-    }
-    // If sent a second time
-    else if (i == 1 && receivedData.buoy_number == 3)
+    } else if (i == 1 && receivedData.buoy_number == 3)
     {
       Serial.println("It failed! I received data again from the buoy.");
-    }
-    else if (i == 1 && receivedData.buoy_number == 0)
+    } else if (i == 1 && receivedData.buoy_number == 0)
     {
       Serial.println("Buoy corrected disregarded data!");
-    }
-    else
+    } else
     {
       Serial.println("Error! Buoy ID was neither 0 nor 3!");
       Serial.println("This happened during ID + 1, the 'send same message twice' check, to see if data would be sent twice");
