@@ -109,7 +109,7 @@ void testBuoy()
   receivedData.buoy_number = 0;
   Serial.println("Test 1:");
   // Shouldn't receive anything!
-  if (buoy.receive_data(receivedData);) {
+  if (buoy.receive_data(receivedData)) {
     if (receivedData.buoy_number == 3) {
       Serial.println("Error! Got data back!");
     }
@@ -125,7 +125,7 @@ void testBuoy()
   // test 2
   // Send from ID 1 above, which should instantly send back.
   // Also, send message again later, to see if buoy ignores second message
-  Serial.println("Test 2:")
+  Serial.println("Test 2:");
   for (int i = 0; i < 2; i++)
   {
     fakeData.buoy_number = BUOY_ID_TEST + 1;
@@ -142,17 +142,13 @@ void testBuoy()
       Serial.println(receivedData.sent_from);
       // Resets to check if we get the message again when we send it a second time
       receivedData.buoy_number = 0;
-    }
-    // If sent a second time
-    else if (i == 1 && receivedData.buoy_number == 3)
+    } else if (i == 1 && receivedData.buoy_number == 3)
     {
       Serial.println("It failed! I received data again from the buoy.");
-    }
-    else if (i == 1 && receivedData.buoy_number == 0)
+    } else if (i == 1 && receivedData.buoy_number == 0)
     {
       Serial.println("Buoy corrected disregarded data!");
-    }
-    else
+    } else
     {
       Serial.println("Error! Buoy ID was neither 0 nor 3!");
       Serial.println("This happened during ID + 1, the 'send same message twice' check, to see if data would be sent twice");
@@ -305,6 +301,8 @@ void loop()
         // Print alle værdier fra HER for at vise, at vi fik fra Bøje 3
         Serial.print("Fået information! Fra bøje nr. ");
         Serial.println(receivedData.buoy_number);
+        Serial.print("Bøje alarm: ");
+        Serial.println(receivedData.alarm);
         Serial.print("Sent fra: nr. ");
         Serial.println(receivedData.sent_from);
         Serial.println("Batteri spænding:");
