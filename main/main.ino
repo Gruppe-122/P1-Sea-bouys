@@ -36,7 +36,7 @@
 #define BUOY_AMOUNT 4
 #define LATITUDE 57.014734549353605
 #define LONGITUDE 9.98581865579486
-#define METERS_PER_DEGREE_LAT 11111.0
+#define METERS_PER_DEGREE_LAT 111111.0
 #define MAX_DISTANCE 30
 #define uS_TO_S_FACTOR 1000000ULL
 #define INTERVAL_MINUTES 4
@@ -255,7 +255,7 @@ void loop() {
         double lat_diff_meters = (convertTodegrees(ownData.gps_latitude) - LATITUDE);
 
         // Longitude degree per meter changes from how far up you are, use original location to get a guesstimate
-        double lon_diff_meters = (convertTodegrees(ownData.gps_longitude) - LONGITUDE) * cos(LONGITUDE * PI / 180.0);
+        double lon_diff_meters = (convertTodegrees(ownData.gps_longitude) - LONGITUDE) * cos(LATITUDE * PI / 180.0);
 
       // Pythagoras to figure out if it's far away
       double distance = (lon_diff_meters * lon_diff_meters) + (lat_diff_meters * lat_diff_meters);
