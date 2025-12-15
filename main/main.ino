@@ -295,12 +295,6 @@ void loop() {
   sleepTime();
 }
 
-float metersPerDegreeLon(float lon) {
-  // cos uses cosine with radians, so we change degrees to radians
-  float metersPerDegreeLon = METERS_PER_DEGREE_LAT * cos(lon * PI / 180.0);
-  return metersPerDegreeLon;
-}
-
 void sendingOrderForBuoys() {
     // If it's from a buoy further away (next to it or once removed). Odds of both disappearing is small, no need to complicate the system.
   if(alreadySentID == false && BUOY_ID < receivedData.sent_from && receivedData.sent_from < (BUOY_ID + 3)){
