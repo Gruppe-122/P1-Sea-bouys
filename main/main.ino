@@ -37,12 +37,16 @@
 #define LATITUDE 57.055533
 #define LONGITUDE 9.925497
 #define METERS_PER_DEGREE_LAT 111120.0
+#define MAX_DISTANCE 30
 #define uS_TO_S_FACTOR 1000000ULL
 #define INTERVAL_MINUTES 5
 #define WAKEUP_MINUTES_BEFORE 2
 
 #define CURRENT_POWER_PIN 0
 #define VOLTAGE_POWER_PIN 2
+
+// Vars
+double maxDistance = (MAX_DISTANCE * MAX_DISTANCE) / (METERS_PER_DEGREE_LAT * METERS_PER_DEGREE_LAT);
 
 // Structs
 nmeaData GNSSData;
@@ -118,7 +122,7 @@ void collectSensorData()
   ownData.battery_voltage = battery.ADC_to_mV(avg_ADC);
 
   // GPS
-  readGNSS(&GNSSData, GPSSerial); //will time out after 6 seconds
+  readGNSS(&GNSSData, GPSSerial); //will time out after 30 seconds
   //TODO: check if valid
   ownData.gps_latitude = GNSSData.lat;
   ownData.gps_longitude = GNSSData.lon;
@@ -247,18 +251,18 @@ void loop() {
       //   ownData.gps_longitude = 0.0;
       // PrintGPSData(GNSSData);
 
-      // Original position to GPS position
-      double lat_diff_meters = (ownData.gps_latitude - LATITUDE) * METERS_PER_DEGREE_LAT;
+        // Original position to GPS position
+        double lat_diff_meters = (convertTodegrees(ownData.gps_latitude) - LATITUDE);
 
-      // Longitude degree per meter changes from how far up you are, use original location to get a guesstimate
-      double lon_diff_meters = (ownData.gps_longitude - LONGITUDE) * metersPerDegreeLon(LONGITUDE);
+        // Longitude degree per meter changes from how far up you are, use original location to get a guesstimate
+        double lon_diff_meters = (convertTodegrees(ownData.gps_longitude) - LONGITUDE) * cos(LONGITUDE * PI / 180.0);
 
       // Pythagoras to figure out if it's far away
       double distance = (lon_diff_meters * lon_diff_meters) + (lat_diff_meters * lat_diff_meters);
 
 
         // If it's over 30 meters away (30*30 = 900) - An extra check in case the buoy doesn't know it's out of its position
-      if (distance > 900.0) {
+      if (distance > maxDistance) {
           gpsTries++;
       }
       else {
@@ -328,12 +332,6 @@ void loop() {
     buoy.sleep_radio();
     sleepTime(sleep_duration);
   }
-}
-
-float metersPerDegreeLon(float lon) {
-  // cos uses cosine with radians, so we change degrees to radians
-  float metersPerDegreeLon = METERS_PER_DEGREE_LAT * cos(lon * PI / 180.0);
-  return metersPerDegreeLon;
 }
 
 void sendingOrderForBuoys() {
