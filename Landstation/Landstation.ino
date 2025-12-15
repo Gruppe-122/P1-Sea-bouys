@@ -263,7 +263,7 @@ void loop() {
       double lat_diff_meters =  receivedData.gps_latitude - location[receivedData.buoy_number - 1][0];
 
       // Longitude degree per meter changes from how far up you are, use original location to get a guesstimate
-      double lon_diff_meters = receivedData.gps_longitude - location[receivedData.buoy_number - 1][1]) * cos(location[receivedData.buoy_number - 1][1] * PI / 180);
+      double lon_diff_meters = receivedData.gps_longitude - location[receivedData.buoy_number - 1][1] * cos(location[receivedData.buoy_number - 1][1] * PI / 180);
 
       // Pythagoras to figure out how far away it is
       double distance = (lon_diff_meters * lon_diff_meters) + (lat_diff_meters * lat_diff_meters);

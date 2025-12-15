@@ -149,6 +149,7 @@ void setup()
 
   // GPS
   initGNSS(GPSSerial, GPSRX, GPSTX);
+  delay(30*1000) // wait for gnss to be ready
   syncTime();
 
   // voltage measurements
