@@ -118,7 +118,7 @@ void collectSensorData()
   ownData.battery_voltage = battery.ADC_to_mV(avg_ADC);
 
   // GPS
-  readGNSS(&GNSSData, GPSSerial); //will time out after 6 seconds
+  readGNSS(&GNSSData, GPSSerial); //will time out after 30 seconds
   //TODO: check if valid
   ownData.gps_latitude = GNSSData.lat;
   ownData.gps_longitude = GNSSData.lon;
