@@ -2,7 +2,7 @@
 
 #define GNSSSTARTCMD "$PCAS03,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*03\r\n"
 
-static const bool USE_DECIMAL_DEGREES = false;
+static const bool USE_DECIMAL_DEGREES = true;
 
 double convertTodegrees(double raw) {
   gpsLog.logln("convert lat or lon to degrees decimal", "INFO", true);
