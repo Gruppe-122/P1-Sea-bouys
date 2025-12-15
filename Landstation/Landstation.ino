@@ -11,7 +11,7 @@
 // Definitions
 #define BUOY_AMOUNT 5
 #define AMOUNT_BEFORE_ALARM 3
-#define METERS_PER_DEGREE_LAT 11111.0
+#define METERS_PER_DEGREE_LAT 111111.0
 #define DIST_THRESH 30.0
 // This is the ID on the buoy we're sending to:
 #define BUOY_ID_TEST 3
@@ -279,11 +279,11 @@ void loop()
         listBuoys[receivedData.buoy_number - 1].gps_lon = receivedData.gps_longitude;
         listBuoys[receivedData.buoy_number - 1].gps_lat = receivedData.gps_latitude;
 
-      // Original position to GPS position
-      double lat_diff_meters =  convertTodegrees(receivedData.gps_latitude) - location[receivedData.buoy_number - 1][0];
+        // Original position to GPS position
+        double lat_diff_meters =  convertTodegrees(receivedData.gps_latitude) - location[receivedData.buoy_number - 1][0];
 
-      // Longitude degree per meter changes from how far up you are, use original location to get a guesstimate
-      double lon_diff_meters = (convertTodegrees(receivedData.gps_longitude) - location[receivedData.buoy_number - 1][1]) * cos(location[receivedData.buoy_number - 1][1] * PI / 180);
+        // Longitude degree per meter changes from how far up you are, use original location to get a guesstimate
+        double lon_diff_meters = (convertTodegrees(receivedData.gps_longitude) - location[receivedData.buoy_number - 1][1]) * cos(location[receivedData.buoy_number - 1][0] * PI / 180);
 
         // Pythagoras to figure out how far away it is
         double distance = (lon_diff_meters * lon_diff_meters) + (lat_diff_meters * lat_diff_meters);
