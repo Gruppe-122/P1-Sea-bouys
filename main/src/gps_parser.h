@@ -18,6 +18,12 @@ typedef struct {
   char utc[11];
 } nmeaData;
 
+/**
+ * @brief Converts position data in format DDMM.MMMMM to DD.DDDDDD.
+ * @param data to be converted.
+ */
+double convertTodegrees(double raw);
+
 // /**
 //  * @brief tells gps module to sleep for "sleepTime" seconds.
 //  * @param sleepTime how long in seconds the gps will sleep.
