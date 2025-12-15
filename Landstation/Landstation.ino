@@ -168,8 +168,9 @@ void testBuoy()
   // Delay shouldn't be too big, buoy sends data after 600 milliseconds if it doesn't get from another buoy
   delay(200);
   // If no data below, check is correct, nothing was sent back!
+  receivedData.buoy_number = 0;
   buoy.receive_data(receivedData);
-  Serial.println("If ID is 6, then it sent the message. If 5, then it's the last message:");
+  Serial.println("should be 0");
   Serial.println(receivedData.buoy_number);
   // NOW see if it gets the message if you pretend to send it from the one it's supposed to hear from
   if (idAbove == 1)
@@ -200,10 +201,10 @@ void testBuoy()
   fakeData.sent_from = BUOY_ID_TEST + 3;
   delay(1000);
   buoy.send_data(fakeData);
-  fakeData.buoy_number = 0;
+  receivedData.buoy_number = 0;
   delay(2000);
   buoy.receive_data(receivedData);
-  Serial.println("Should be 0:");
+  Serial.println("If ID is 6, then it sent the message. If 5, then it's the last message:");
   Serial.println(receivedData.buoy_number);
 
   // We now need to make sure the landstation thinks it's gotten a whole system of buoys

@@ -34,8 +34,8 @@
 #define GPSSerial Serial2
 #define BUOY_ID 3
 #define BUOY_AMOUNT 4
-#define LATITUDE 57.055533
-#define LONGITUDE 9.925497
+#define LATITUDE 57.014734549353605
+#define LONGITUDE 9.98581865579486
 #define METERS_PER_DEGREE_LAT 11111.0
 #define MAX_DISTANCE 30
 #define uS_TO_S_FACTOR 1000000ULL
@@ -274,6 +274,9 @@ void loop() {
     // Start ALARM MODE if GPS was out of range 3 times
     if (gpsTries >= 3) {
       ownData.alarm = true;
+    }
+    else {
+      Serial.println("GPS Buoy in its right place!");
     }
     initialized = true;
     lastSentMessage = millis();
