@@ -38,7 +38,7 @@
 #define LONGITUDE 9.925497
 #define METERS_PER_DEGREE_LAT 111120.0
 #define uS_TO_S_FACTOR 1000000ULL
-#define INTERVAL_MINUTES 5
+#define INTERVAL_MINUTES 4
 #define WAKEUP_MINUTES_BEFORE 2
 
 #define CURRENT_POWER_PIN 0
@@ -294,6 +294,10 @@ void loop() {
       if(receivedData.buoy_number == idCheck[i]){
         alreadySentID = true;
       }
+    }
+    if (!alreadySentID) {
+      Serial.println("Received buoy ID: ");
+      Serial.println(receivedData.buoy_number);
     }
     sendingOrderForBuoys();
   }

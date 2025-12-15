@@ -125,6 +125,7 @@ void testBuoy()
   // test 2
   // Send from ID 1 above, which should instantly send back.
   // Also, send message again later, to see if buoy ignores second message
+  Serial.println("Test 2:")
   for (int i = 0; i < 2; i++)
   {
     fakeData.buoy_number = BUOY_ID_TEST + 1;
@@ -134,7 +135,6 @@ void testBuoy()
     delay(2000);
     receivedData.buoy_number = 0;
     buoy.receive_data(receivedData);
-    Serial.println("Test 2:")
     //
     if (i == 0)
     {
@@ -172,7 +172,7 @@ void testBuoy()
   // Delay shouldn't be too big, buoy sends data after 600 milliseconds if it doesn't get from another buoy
   delay(200);
   // If no data below, check is correct, nothing was sent back!
-  fakeData.sent_from = 0;
+  receivedData.sent_from = 0;
   buoy.receive_data(receivedData);
   Serial.println("Should be 0:");
   Serial.println(receivedData.sent_from);
@@ -202,6 +202,7 @@ void testBuoy()
   // test 4
   // Check also ID above 3
   fakeData.buoy_number = BUOY_ID_TEST + 3;
+  fakeData.sent_from = BUOY_ID_TEST + 3;
   delay(1000);
   buoy.send_data(fakeData);
   fakeData.buoy_number = 0;
