@@ -14,6 +14,7 @@
 #include "src/volt.h"
 #include "src/mesh.h"
 #include "src/log.h"
+#include "time.h"
 
 // definitions
 #define R1 1000.0        // Resistor value in voltagedivider circuit
@@ -33,13 +34,19 @@
 #define GPSSerial Serial2
 #define BUOY_ID 3
 #define BUOY_AMOUNT 4
-#define LATITUDE 57.055533
-#define LONGITUDE 9.925497
-#define METERS_PER_DEGREE_LAT 111120.0
+#define LATITUDE 57.014734549353605
+#define LONGITUDE 9.98581865579486
+#define METERS_PER_DEGREE_LAT 111111.0
+#define MAX_DISTANCE 30
 #define uS_TO_S_FACTOR 1000000ULL
+#define INTERVAL_MINUTES 1
+#define WAKEUP_MINUTES_BEFORE 1
 
 #define CURRENT_POWER_PIN 0
 #define VOLTAGE_POWER_PIN 2
+
+// Vars
+double maxDistance = (MAX_DISTANCE * MAX_DISTANCE) / (METERS_PER_DEGREE_LAT * METERS_PER_DEGREE_LAT);
 
 // Structs
 nmeaData GNSSData;
@@ -57,11 +64,12 @@ logger accelLog = logger("ACCELOMETER", "INFO");
 logger currentLog = logger("CURRENT", "INFO");
 logger voltLog = logger("VOLT", "INFO");
 logger meshLog = logger("MESH", "INFO");
-logger gpsLog = logger("GPS", "INFO");
+logger gpsLog = logger("GPS", "DEBUG");
 logger mainLog = logger("MAIN", "INFO");
 
 void syncTime(){
   mainLog.logln("started sync", "INFO", true);
+  initGNSS(GPSSerial, GPSRX, GPSTX);
   readGNSS(&GNSSData, GPSSerial);
   syncTimeFromGPS(GNSSData.utc);
   mainLog.logln("time sync", "INFO", true);
@@ -79,10 +87,10 @@ void logBuoyData(const BuoyData &data, const char *level)
   mainLog.logln(data.battery_voltage, level, false);
 
   mainLog.log("gps_latitude: ", level, true);
-  mainLog.logln(data.gps_latitude, level, false);
+  mainLog.logln(data.gps_latitude, 10, level, false);
 
   mainLog.log("gps_longitude: ", level, true);
-  mainLog.logln(data.gps_longitude, level, false);
+  mainLog.logln(data.gps_longitude, 10, level, false);
 
   mainLog.log("accelerometer_jerk: ", level, true);
   mainLog.logln(data.accelerometer_jerk, level, false);
@@ -114,7 +122,7 @@ void collectSensorData()
   ownData.battery_voltage = battery.ADC_to_mV(avg_ADC);
 
   // GPS
-  readGNSS(&GNSSData, GPSSerial); //will time out after 6 seconds
+  readGNSS(&GNSSData, GPSSerial); //will time out after 30 seconds
   //TODO: check if valid
   ownData.gps_latitude = GNSSData.lat;
   ownData.gps_longitude = GNSSData.lon;
@@ -128,7 +136,7 @@ void collectSensorData()
   digitalWrite(VOLTAGE_POWER_PIN, LOW);
 }
 
-void sleep(unsigned long sec = 1800) {
+void sleepTime(unsigned long sec) {
   esp_sleep_enable_ext0_wakeup(GPIO_NUM_5, 1);
   esp_sleep_enable_timer_wakeup((uint64_t)sec * uS_TO_S_FACTOR);
   Serial.flush();
@@ -136,20 +144,49 @@ void sleep(unsigned long sec = 1800) {
   esp_deep_sleep_start();
 }
 
-// saves data on RTC RAM so it is remembered from each sleep cycle
-RTC_DATA_ATTR uint8_t accelerometerHit;
-
 void isWitheldDataAlreadySent();
 void sendingOrderForBuoys();
 
+// saves data on RTC RAM so it is remembered from each sleep cycle
+RTC_DATA_ATTR uint8_t accelerometerHit = 0;
+
+
+int idCheck[BUOY_AMOUNT];
+int receivedIDs = 0;
+unsigned int buoySendDelay = 0;
+unsigned long lastSentMessage = 0;
+unsigned long sendDataTimer;
+unsigned long milliseconds_until_interval;
+bool sendDelay = false;
+bool initialized = false;
+bool alreadySentID = false;
+bool alreadySentID2 = false;
+bool sendOwnMessage = false;
+
 void setup()
 {
-  delay(1000);
   Serial.begin(115200);
 
   // GPS
-  initGNSS(GPSSerial, GPSRX, GPSTX);
+  delay(10000);
   syncTime();
+  // Get time and date
+  // We put our time into an int
+  time_t now = time(NULL);
+  // We now put the adress of this integer into a command to make it into a time struct. localtime requires a pointer
+  struct tm *local_time = localtime(&now);
+  int current_minute = local_time->tm_min;
+  int current_second = local_time->tm_sec;
+  // How many minutes have passed in the interval
+  int remainder = current_minute % INTERVAL_MINUTES;
+  // Change to how many minutes are left in the interval
+  int minutes_to_next = INTERVAL_MINUTES - remainder;
+  // Make amount of time left into milliseconds
+  milliseconds_until_interval = ((minutes_to_next * 60) - current_second) * 1000;
+  sendDataTimer = millis();
+  Serial.print("Milliseconds until interval where it should send:");
+  Serial.println(milliseconds_until_interval);
+
 
   // voltage measurements
   pinMode(VOLT_PIN, INPUT);
@@ -172,15 +209,6 @@ void setup()
   calibrate();
 }
 
-int idCheck[BUOY_AMOUNT];
-int receivedIDs = 0;
-unsigned int buoySendDelay = 0;
-unsigned long lastSentMessage = 0;
-bool sendDelay = false;
-bool initialized = false;
-bool alreadySentID = false;
-bool alreadySentID2 = false;
-
 void loop() {
     // Wake up
     // initialized = 0 somewhere in wake up
@@ -191,6 +219,7 @@ void loop() {
     // If it was hit two cycles ago, it'll be 2, 3 will be 3, and then it resets
     // Gives a general idea of how long it was hit last, in case a message fails to send
     collectSensorData();
+    ownData.sent_from = 3;
     logBuoyData(ownData, "TEST");
 
     if (ownData.accelerometer_jerk != 0) {
@@ -204,7 +233,7 @@ void loop() {
       ownData.accelerometer_jerk = 0;
       accelerometerHit = 0;
     }
-    else if (accelerometer != 0) {
+    else if (accelerometerHit != 0) {
       Serial.println("Error! 'accelerometerHit' was not within the interval [0,4]");
     }
     // Check battery
@@ -216,25 +245,26 @@ void loop() {
     uint8_t gpsTries = 0;
     while (gpsTries < 3) {
 
-        // TJEK GPS HER
-        // readGNSS(&GNSSData, GPSSerial);
-        //   ownData.gps_latitude = 0.0;
-        //   ownData.gps_longitude = 0.0;
-        // PrintGPSData(GNSSData);
+      // TJEK GPS HER
+      // readGNSS(&GNSSData, GPSSerial);
+      //   ownData.gps_latitude = 0.0;
+      //   ownData.gps_longitude = 0.0;
+      // PrintGPSData(GNSSData);
 
         // Original position to GPS position
-        double lat_diff_meters = (ownData.gps_latitude - LATITUDE) * METERS_PER_DEGREE_LAT;
+        double lat_diff_meters = (convertTodegrees(ownData.gps_latitude) - LATITUDE);
 
         // Longitude degree per meter changes from how far up you are, use original location to get a guesstimate
-        double lon_diff_meters = (ownData.gps_longitude - LONGITUDE) * metersPerDegreeLon(LONGITUDE);
+        double lon_diff_meters = (convertTodegrees(ownData.gps_longitude) - LONGITUDE) * cos(LATITUDE * PI / 180.0);
 
-        // Pythagoras to figure out if it's far away
-        double distance = (lon_diff_meters * lon_diff_meters) + (lat_diff_meters * lat_diff_meters);
+      // Pythagoras to figure out if it's far away
+      double distance = (lon_diff_meters * lon_diff_meters) + (lat_diff_meters * lat_diff_meters);
 
 
         // If it's over 30 meters away (30*30 = 900) - An extra check in case the buoy doesn't know it's out of its position
-      if (distance > 900.0) {
+      if (distance > maxDistance) {
           gpsTries++;
+          Serial.println("GPS Out of range! This message will appear 3 times if this is out of range!");
       }
       else {
           break;
@@ -243,58 +273,73 @@ void loop() {
   
     // Start ALARM MODE if GPS was out of range 3 times
     if (gpsTries >= 3) {
-        ownData.alarm = true;
+      ownData.alarm = true;
     }
-    // Make a delay here based on TIME until when you want to send (Specific time of day + ID)
-    delay(BUOY_ID*1000);
-
-    buoy.send_data(ownData);
-    // Adding own buoy to the array of sent bouys
-    idCheck[0] = BUOY_ID;
-    receivedIDs++;
+    else {
+      Serial.println("GPS Buoy in its right place!");
+    }
     initialized = true;
     lastSentMessage = millis();
   }
 
-  
-  // Start listening loop!
-  while (30000 > millis() - lastSentMessage) {
-    if (buoy.receive_data(receivedData)) {
-      alreadySentID = false;
-
-
-      // Amount of IDs received, check if already in array or if it hasn't received anything new
-      for(int i=0; i<receivedIDs; i++){ 
-        if(receivedData.buoy_number == idCheck[i]){
-          alreadySentID = true;
-        }
-      }
-      sendingOrderForBuoys();
-      }
-    // Check if witholding ID sent from 2 buoys away is already sent through a closer buoy in the meantime
-    alreadySentID2 = false;
-    isWitheldDataAlreadySent();
+  if (milliseconds_until_interval + (BUOY_ID * 1000) < millis() - sendDataTimer && !sendOwnMessage) 
+  {
+    Serial.println("Message has been sent!");
+    buoy.send_data(ownData);
+    idCheck[0] = BUOY_ID;
+    receivedIDs++;
+    lastSentMessage = millis();
+    sendOwnMessage = true;
   }
 
   
+  // Start listening loop!
+  if (buoy.receive_data(receivedData)) {
+      alreadySentID = false;
 
-  // ALARM MODE! BUOY IS NOT IN LOCATION
-  // NOT allowed to go beyond Duty Cycle of 1% transmission time of an hour, that is 36 seconds of total transmission time.
-  // Remember, all the other buoys repeating the message will also be repeating higher ID buoy messages.
+    // Amount of IDs received, check if already in array or if it hasn't received anything new
+    for(int i=0; i<receivedIDs; i++){ 
+      if(receivedData.buoy_number == idCheck[i]){
+        alreadySentID = true;
+      }
+    }
+    if (!alreadySentID) {
+      Serial.println("Received buoy ID: ");
+      Serial.println(receivedData.buoy_number);
+    }
+    sendingOrderForBuoys();
+  }
 
 
+  // Check if witholding ID sent from 2 buoys away is already sent through a closer buoy in the meantime
+  alreadySentID2 = false;
+  isWitheldDataAlreadySent();
 
   // After a certain amount of time, check how long it's been awake
   // After 30 seconds of being awake, sleep
-  buoy.sleep_radio();
-  esp_sleep_enable_timer_wakeup(10ULL * 1000000ULL);  // 10 seconds as an example of sleep instead of WiFi
-  esp_deep_sleep_start();
-}
-
-float metersPerDegreeLon(float lon) {
-  // cos uses cosine with radians, so we change degrees to radians
-  float metersPerDegreeLon = METERS_PER_DEGREE_LAT * cos(lon * PI / 180.0);
-  return metersPerDegreeLon;
+  if (10000 < millis() - lastSentMessage && sendOwnMessage) {
+    // We put our time into an int
+    time_t now = time(NULL);
+    // We now put the adress of this integer into a command to make it into a time struct. localtime requires a pointer
+    struct tm *local_time = localtime(&now);
+    int current_minute = local_time->tm_min;
+    int current_second = local_time->tm_sec;
+    int remainder = current_minute % INTERVAL_MINUTES;
+    int seconds_to_next_full_interval = ((INTERVAL_MINUTES - remainder) * 60) - current_second;
+    //int seconds_to_next_full_interval = time_to_current_interval + (INTERVAL_MINUTES * 60);
+    int sleep_duration = seconds_to_next_full_interval - (WAKEUP_MINUTES_BEFORE * 60);
+    if (sleep_duration <= 0) {
+    //  sleep_duration = seconds_to_next_full_interval + (INTERVAL_MINUTES * 60) - (WAKEUP_MINUTES_BEFORE * 60);
+      if (sleep_duration <= 0) {
+        sleep_duration = 1;
+      }
+    }
+    Serial.print("Going to sleep for ");
+    Serial.print(sleep_duration);
+    Serial.println(" seconds!");
+    buoy.sleep_radio();
+    sleepTime(sleep_duration);
+  }
 }
 
 void sendingOrderForBuoys() {
@@ -325,7 +370,7 @@ void sendingOrderForBuoys() {
 }
 
 void isWitheldDataAlreadySent() {
-  if (600 < millis() - buoySendDelay && sendDelay == true && withholdingReceivedData.buoy_number != 0) {
+  if (400 < millis() - buoySendDelay && sendDelay == true && withholdingReceivedData.buoy_number != 0) {
     for(int i=0; i<receivedIDs; i++){
       if(withholdingReceivedData.buoy_number == idCheck[i]){
         alreadySentID2 = true;
