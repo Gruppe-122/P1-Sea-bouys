@@ -18,7 +18,7 @@ struct BuoyData
     uint8_t battery_voltage;
     double gps_latitude;
     double gps_longitude;
-    bool accelerometer_jerk;
+    uint8_t accelerometer_jerk;
     bool lamp_current;
 };
 

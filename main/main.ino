@@ -36,11 +36,11 @@
 #define BUOY_AMOUNT 4
 #define LATITUDE 57.014734549353605
 #define LONGITUDE 9.98581865579486
-#define METERS_PER_DEGREE_LAT 11111.0
+#define METERS_PER_DEGREE_LAT 111111.0
 #define MAX_DISTANCE 30
 #define uS_TO_S_FACTOR 1000000ULL
-#define INTERVAL_MINUTES 4
-#define WAKEUP_MINUTES_BEFORE 2
+#define INTERVAL_MINUTES 1
+#define WAKEUP_MINUTES_BEFORE 1
 
 #define CURRENT_POWER_PIN 0
 #define VOLTAGE_POWER_PIN 2
@@ -255,7 +255,7 @@ void loop() {
         double lat_diff_meters = (convertTodegrees(ownData.gps_latitude) - LATITUDE);
 
         // Longitude degree per meter changes from how far up you are, use original location to get a guesstimate
-        double lon_diff_meters = (convertTodegrees(ownData.gps_longitude) - LONGITUDE) * cos(LONGITUDE * PI / 180.0);
+        double lon_diff_meters = (convertTodegrees(ownData.gps_longitude) - LONGITUDE) * cos(LATITUDE * PI / 180.0);
 
       // Pythagoras to figure out if it's far away
       double distance = (lon_diff_meters * lon_diff_meters) + (lat_diff_meters * lat_diff_meters);
@@ -370,7 +370,7 @@ void sendingOrderForBuoys() {
 }
 
 void isWitheldDataAlreadySent() {
-  if (600 < millis() - buoySendDelay && sendDelay == true && withholdingReceivedData.buoy_number != 0) {
+  if (400 < millis() - buoySendDelay && sendDelay == true && withholdingReceivedData.buoy_number != 0) {
     for(int i=0; i<receivedIDs; i++){
       if(withholdingReceivedData.buoy_number == idCheck[i]){
         alreadySentID2 = true;

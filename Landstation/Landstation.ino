@@ -11,7 +11,7 @@
 // Definitions
 #define BUOY_AMOUNT 5
 #define AMOUNT_BEFORE_ALARM 3
-#define METERS_PER_DEGREE_LAT 11111.0
+#define METERS_PER_DEGREE_LAT 111111.0
 #define DIST_THRESH 30.0
 // This is the ID on the buoy we're sending to:
 #define BUOY_ID_TEST 3
@@ -204,7 +204,7 @@ void testBuoy()
   receivedData.buoy_number = 0;
   delay(2000);
   buoy.receive_data(receivedData);
-  Serial.println("If ID is 6, then it sent the message. If 5, then it's the last message:");
+  Serial.println("Should be 0:");
   Serial.println(receivedData.buoy_number);
 
   // We now need to make sure the landstation thinks it's gotten a whole system of buoys
@@ -283,7 +283,7 @@ void loop()
       double lat_diff_meters =  convertTodegrees(receivedData.gps_latitude) - location[receivedData.buoy_number - 1][0];
 
       // Longitude degree per meter changes from how far up you are, use original location to get a guesstimate
-      double lon_diff_meters = (convertTodegrees(receivedData.gps_longitude) - location[receivedData.buoy_number - 1][1]) * cos(location[receivedData.buoy_number - 1][1] * PI / 180);
+      double lon_diff_meters = (convertTodegrees(receivedData.gps_longitude) - location[receivedData.buoy_number - 1][1]) * cos(location[receivedData.buoy_number - 1][0] * PI / 180);
 
         // Pythagoras to figure out how far away it is
         double distance = (lon_diff_meters * lon_diff_meters) + (lat_diff_meters * lat_diff_meters);
