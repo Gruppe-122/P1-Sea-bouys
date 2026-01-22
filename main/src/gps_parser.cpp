@@ -132,10 +132,10 @@ void readGGAData(char *inputData, nmeaData *data) {
 }
 
 int charToHex(char in) {
-  if (in <= '9' && in >= '0') {
+  if (in >= '0' && in <= '9') {
     return (in - '0'); //"0" - '0' = 0x00
   }
-  if (in <= 'A' && in >= 'F') {
+  if (in >= 'A' && in <= 'F') {
     return (in - 'A' + 10); //0x0A = 10, "A" - 'A' + 10 = 0x0A
   }
   return -1; // invalid hex char
